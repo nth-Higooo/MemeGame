@@ -1,6 +1,13 @@
-import { AlertTriangle, ArrowRight, Mail, Sparkles, Wifi } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, ArrowRight, Mail } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { AppShell } from "../components/app-shell";
+import {
+  CelestialBackground,
+  DecorativeCloud,
+  DecorativeSparkle,
+} from "../components/celestial-background";
+import { ConnectionIndicator } from "../components/connection-indicator";
+import { CountdownTimer } from "../components/countdown-timer";
 import { FeedbackState } from "../components/feedback-state";
 import { GlassBadge } from "../components/glass-badge";
 import { GlassButton } from "../components/glass-button";
@@ -8,146 +15,197 @@ import { GlassCard } from "../components/glass-card";
 import { GlassInput } from "../components/glass-input";
 import { GlassModal } from "../components/glass-modal";
 import { MemeCard } from "../components/meme-card";
-import { mockMemes } from "../data/mock-data";
+import { QuestionCard } from "../components/question-card";
+import { mockMemes, mockRound } from "../data/mock-data";
 
 const colors = [
-  ["Lavender", "#7650c4"],
-  ["Petal", "#d95f9f"],
-  ["Mint", "#b7ead5"],
-  ["Peach", "#ffcfaa"],
-  ["Cream", "#fffaf4"],
-  ["Ink", "#28173a"],
+  ["Candy Pink", "#F9C6DE"],
+  ["Soft Lilac", "#C7B5F5"],
+  ["Cloud Blue", "#A9DDF7"],
+  ["Peach", "#FFC4A7"],
+  ["Periwinkle", "#8F9BEF"],
+  ["Mint", "#B9E9DA"],
+  ["Warm White", "#FFF8F7"],
+  ["Midnight", "#242B4D"],
 ];
 
 export function DesignSystemPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(mockMemes[0]?.id);
   return (
-    <AppShell
-      action={
-        <GlassBadge icon={<Sparkles aria-hidden="true" size={12} />} tone="violet">
-          Dev showcase
-        </GlassBadge>
-      }
-    >
-      <div className="py-10 sm:py-14">
-        <GlassBadge tone="violet">Liquid Celebration · v1</GlassBadge>
-        <h1 className="mt-4 max-w-4xl text-4xl font-black tracking-[-.05em] text-violet-950 sm:text-6xl">
-          Hệ thống giao diện mềm, rõ và có nhịp.
+    <AppShell action={<GlassBadge tone="violet">Celestial system · Dev</GlassBadge>}>
+      <div className="py-9 sm:py-12">
+        <span className="text-xs font-black uppercase tracking-[.16em] text-[#b75586]">
+          Phase 02 · Visual language
+        </span>
+        <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-[-.045em] text-[var(--midnight)] sm:text-6xl">
+          Celestial Pastel Glass
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-violet-950/58">
-          Trang nội bộ để kiểm tra token, component, trạng thái và interaction trước khi nối dữ liệu
-          thật.
+        <p className="mt-3 max-w-2xl leading-7 text-[var(--ink-body)]">
+          Một hệ giao diện mềm, có chiều sâu và tiết chế: content rõ nét, glass chỉ dành cho lớp
+          nổi, minh hoạ thiên thể tạo cá tính.
         </p>
 
-        <ShowcaseSection
-          title="Màu sắc"
-          description="Pastel nền, màu đậm dành cho chữ và hành động."
+        <Showcase
+          title="Môi trường"
+          description="Light canvas cho Player/Admin và twilight stage dành cho màn chiếu."
         >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="relative h-52 overflow-hidden rounded-[1.25rem] border border-[#e7e2eb]">
+              <CelestialBackground contained />
+              <div className="relative z-10 p-5">
+                <strong className="text-[var(--midnight)]">Pastel daylight</strong>
+                <DecorativeSparkle className="!bottom-8 !right-8 !left-auto !top-auto !w-6" />
+                <DecorativeCloud className="!bottom-[-1rem] !left-4 !w-44" />
+              </div>
+            </div>
+            <div className="relative h-52 overflow-hidden rounded-[1.25rem] border border-[#41496f]">
+              <CelestialBackground contained tone="stage" />
+              <div className="relative z-10 p-5 text-white">
+                <strong>Twilight stage</strong>
+                <p className="mt-2 max-w-xs text-sm text-[#c9cde5]">
+                  Tương phản mạnh để đọc rõ từ xa.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Showcase>
+
+        <Showcase
+          title="Màu & typography"
+          description="Pastel tạo không khí; Midnight giữ độ tương phản và neo thị giác."
+        >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
             {colors.map(([name, color]) => (
-              <GlassCard key={name} className="p-3" variant="solid" radius="medium">
+              <div key={name} className="rounded-[.9rem] border border-[#e8e4eb] bg-[#fffdfb] p-2">
                 <span
-                  className="block aspect-square rounded-2xl shadow-inner"
+                  className="block aspect-square rounded-[.65rem]"
                   style={{ background: color }}
                 />
-                <strong className="mt-3 block text-sm text-violet-950">{name}</strong>
-                <code className="text-[.65rem] text-violet-950/45">{color}</code>
-              </GlassCard>
+                <strong className="mt-2 block text-xs text-[var(--midnight)]">{name}</strong>
+                <code className="text-[.58rem] text-[var(--ink-muted)]">{color}</code>
+              </div>
             ))}
           </div>
-        </ShowcaseSection>
+          <div className="mt-4 grid gap-3 rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-5 md:grid-cols-[1fr_1fr]">
+            <div>
+              <span className="text-xs font-black uppercase tracking-[.16em] text-[#b75586]">
+                Display / 900
+              </span>
+              <p className="mt-2 text-4xl font-black tracking-[-.045em] text-[var(--midnight)]">
+                Chọn cú chốt
+              </p>
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--ink-muted)]">
+                Body / 600
+              </span>
+              <p className="mt-2 leading-7">
+                Nội dung tiếng Việt giữ dấu rõ, nhịp đọc thoải mái và không lạm dụng chữ đậm.
+              </p>
+            </div>
+          </div>
+        </Showcase>
 
-        <ShowcaseSection
-          title="Glass surfaces"
-          description="Clear cho control ngắn; solid cho nội dung cần đọc lâu."
+        <Showcase
+          title="Surface hierarchy"
+          description="Solid/soft cho nội dung; frosted/clear cho lớp nổi ngắn."
         >
-          <div className="grid gap-4 md:grid-cols-4">
-            {(["regular", "subtle", "solid", "clear"] as const).map((variant) => (
-              <GlassCard key={variant} className="min-h-36 p-5" variant={variant}>
-                <span className="text-xs font-black uppercase tracking-[.12em] text-violet-700">
+          <div className="grid gap-3 md:grid-cols-4">
+            {(["solid", "subtle", "regular", "clear"] as const).map((variant) => (
+              <GlassCard key={variant} className="min-h-32 p-4" variant={variant}>
+                <span className="text-xs font-black uppercase tracking-[.12em] text-[var(--periwinkle-700)]">
                   {variant}
                 </span>
-                <p className="mt-3 text-sm leading-6 text-violet-950/62">
-                  Nội dung luôn giữ độ tương phản tốt trên ánh sáng nền.
+                <p className="mt-3 text-sm leading-6 text-[var(--ink-body)]">
+                  Bề mặt có mục đích và không xếp glass lồng nhau.
                 </p>
               </GlassCard>
             ))}
           </div>
-        </ShowcaseSection>
+        </Showcase>
 
-        <ShowcaseSection
-          title="Buttons, badges & input"
-          description="Touch target tối thiểu 44px và focus ring rõ ràng."
+        <Showcase
+          title="Controls"
+          description="Touch target 44px, focus rõ và trạng thái semantic nhất quán."
         >
-          <GlassCard className="p-5 sm:p-6" variant="solid">
-            <div className="flex flex-wrap gap-2.5">
+          <div className="rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-5">
+            <div className="flex flex-wrap gap-2">
               <GlassButton>
-                Primary <ArrowRight aria-hidden="true" size={16} />
+                Primary <ArrowRight size={15} />
               </GlassButton>
               <GlassButton variant="glass">Glass</GlassButton>
               <GlassButton variant="soft">Soft</GlassButton>
               <GlassButton variant="ghost">Ghost</GlassButton>
               <GlassButton variant="danger">
-                <AlertTriangle aria-hidden="true" size={15} /> Nguy hiểm
+                <AlertTriangle size={15} /> Nguy hiểm
               </GlassButton>
               <GlassButton disabled>Disabled</GlassButton>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <GlassBadge tone="neutral">Trung tính</GlassBadge>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <GlassBadge>Trung tính</GlassBadge>
               <GlassBadge tone="violet">Vòng 1</GlassBadge>
-              <GlassBadge icon={<Wifi aria-hidden="true" size={11} />} tone="success">
-                Đã kết nối
-              </GlassBadge>
+              <GlassBadge tone="success">Đã gửi</GlassBadge>
               <GlassBadge tone="warning">Đang chờ</GlassBadge>
               <GlassBadge tone="danger">Có lỗi</GlassBadge>
+              <ConnectionIndicator />
             </div>
-            <div className="mt-6 max-w-md">
+            <div className="mt-5 max-w-md">
               <GlassInput
                 label="Email điều phối"
-                icon={<Mail aria-hidden="true" size={17} />}
+                icon={<Mail size={16} />}
                 placeholder="hello@example.com"
-                hint="Ví dụ input có nhãn và trợ giúp."
+                hint="Nhãn, hint và focus state rõ ràng."
               />
             </div>
-            <GlassButton className="mt-5" variant="glass" onClick={() => setModalOpen(true)}>
-              Mở GlassModal
+            <GlassButton className="mt-4" variant="glass" onClick={() => setModalOpen(true)}>
+              Mở modal
             </GlassButton>
-          </GlassCard>
-        </ShowcaseSection>
-
-        <ShowcaseSection
-          title="Meme cards"
-          description="Ảnh/GIF nằm ở content layer rõ nét; selection có viền, icon và aria state."
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {mockMemes.map((meme) => (
-              <MemeCard
-                key={meme.id}
-                meme={meme}
-                selected={selected === meme.id}
-                onClick={() => setSelected(meme.id)}
-              />
-            ))}
           </div>
-        </ShowcaseSection>
+        </Showcase>
 
-        <ShowcaseSection
+        <Showcase
+          title="Game components"
+          description="Question rõ nét, timer như game element và meme luôn là nội dung chính."
+        >
+          <div className="grid gap-3 lg:grid-cols-[.7fr_1.3fr]">
+            <div className="space-y-3">
+              <QuestionCard>{mockRound.prompt}</QuestionCard>
+              <div className="flex items-center gap-3 rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-4">
+                <CountdownTimer seconds={24} />
+                <CountdownTimer seconds={9} />
+                <span className="text-sm text-[var(--ink-muted)]">Compact countdown</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {mockMemes.slice(0, 3).map((meme) => (
+                <MemeCard
+                  key={meme.id}
+                  meme={meme}
+                  selected={selected === meme.id}
+                  onClick={() => setSelected(meme.id)}
+                />
+              ))}
+            </div>
+          </div>
+        </Showcase>
+
+        <Showcase
           title="System states"
-          description="Loading, empty, error và disconnected dùng chung một cấu trúc."
+          description="Loading, empty, error và disconnected có copy hành động cụ thể."
         >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(["loading", "empty", "error", "disconnected"] as const).map((kind) => (
               <FeedbackState key={kind} compact kind={kind} />
             ))}
           </div>
-        </ShowcaseSection>
+        </Showcase>
       </div>
 
       <GlassModal
         open={modalOpen}
         title="Sẵn sàng bắt đầu?"
-        description="Modal dùng bề mặt gần-opaque để nội dung không bị ánh sáng nền làm khó đọc."
+        description="Elevated glass dành cho dialog, với content surface gần-opaque."
         onClose={() => setModalOpen(false)}
       >
         <div className="flex justify-end gap-2">
@@ -161,20 +219,20 @@ export function DesignSystemPage() {
   );
 }
 
-function ShowcaseSection({
+function Showcase({
   title,
   description,
   children,
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="mt-12">
-      <h2 className="text-2xl font-black tracking-[-.035em] text-violet-950">{title}</h2>
-      <p className="mt-1 text-sm text-violet-950/50">{description}</p>
-      <div className="mt-5">{children}</div>
+    <section className="mt-11">
+      <h2 className="text-xl font-black tracking-[-.025em] text-[var(--midnight)]">{title}</h2>
+      <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }

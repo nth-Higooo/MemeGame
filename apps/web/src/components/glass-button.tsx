@@ -4,17 +4,15 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../lib/utils";
 
 export const glassButtonVariants = cva(
-  "group inline-flex min-h-[var(--size-touch)] select-none items-center justify-center gap-2 rounded-full px-5 text-sm font-bold outline-none transition-[transform,box-shadow,background-color,border-color] duration-200 ease-[var(--ease-spring)] focus-visible:ring-3 focus-visible:ring-[var(--focus-ring)] disabled:pointer-events-none disabled:opacity-45 active:scale-[.98] motion-reduce:transform-none",
+  "celestial-button group inline-flex min-h-[var(--size-touch)] select-none items-center justify-center gap-2 px-5 text-sm font-bold outline-none focus-visible:ring-3 focus-visible:ring-[var(--focus-ring)] disabled:pointer-events-none disabled:opacity-45 active:scale-[.98] motion-reduce:transform-none",
   {
     variants: {
       variant: {
-        primary:
-          "border border-violet-500/20 bg-[linear-gradient(135deg,var(--violet-600),var(--pink-500))] text-white shadow-[var(--shadow-action)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-action-hover)]",
-        glass:
-          "glass-control border border-white/65 text-[var(--ink-strong)] shadow-[var(--shadow-control)] hover:-translate-y-0.5 hover:bg-white/74",
-        soft: "border border-violet-200/70 bg-violet-100/75 text-violet-900 hover:bg-violet-100",
-        ghost: "text-violet-950 hover:bg-white/50",
-        danger: "border border-rose-200/80 bg-rose-50/80 text-rose-700 hover:bg-rose-100",
+        primary: "button-primary",
+        glass: "button-glass",
+        soft: "button-soft",
+        ghost: "button-ghost",
+        danger: "button-danger",
       },
       size: {
         small: "min-h-10 px-4 text-xs",

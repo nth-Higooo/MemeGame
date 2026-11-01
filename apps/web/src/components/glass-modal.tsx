@@ -36,7 +36,7 @@ export function GlassModal({
       onClose={onClose}
       onClick={(event) => event.target === event.currentTarget && onClose()}
     >
-      <div className="glass-solid relative p-6 sm:p-7">
+      <div className="surface-solid relative p-6 sm:p-7">
         <GlassButton
           aria-label="Đóng"
           className="absolute right-4 top-4"

@@ -11,9 +11,17 @@ const browser = await chromium.launch({
 });
 
 const cases = [
-  { name: "player-iphone-se", path: "/play/MT2026", viewport: { width: 320, height: 700 } },
-  { name: "display-projector", path: "/display/MT2026", viewport: { width: 1600, height: 900 } },
-  { name: "admin-desktop", path: "/admin/MT2026", viewport: { width: 1440, height: 1000 } },
+  { name: "player-320x568", path: "/play/MT2026", viewport: { width: 320, height: 568 } },
+  { name: "player-375x812", path: "/play/MT2026", viewport: { width: 375, height: 812 } },
+  { name: "player-390x844", path: "/play/MT2026", viewport: { width: 390, height: 844 } },
+  { name: "display-1280x720", path: "/display/MT2026", viewport: { width: 1280, height: 720 } },
+  { name: "display-1920x1080", path: "/display/MT2026", viewport: { width: 1920, height: 1080 } },
+  {
+    name: "admin-1440x900",
+    path: "/admin/MT2026",
+    viewport: { width: 1440, height: 900 },
+    fullPage: true,
+  },
   {
     name: "design-system",
     path: "/dev/design-system",

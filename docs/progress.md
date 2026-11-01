@@ -44,6 +44,33 @@ Trạng thái: **hoàn thành**.
 - Vite production build: pass, 2,181 modules transformed.
 - Wrangler 4.156.0 dry-run: pass; bundle nhận đủ Assets, D1, R2 và Durable Object bindings.
 
+## Phase 02 visual redesign — Celestial Pastel Glass
+
+Hoàn thành refinement theo art direction mới, vẫn giữ nguyên route, stack và mock-only behavior:
+
+- Thay gradient orb background bằng celestial scene có cloud, sparkle, star và grain SVG/CSS nội bộ.
+- Curated palette Candy Pink, Soft Lilac, Cloud Blue, Peach, Periwinkle, Mint, Warm White và Midnight Indigo; primary action dùng solid indigo.
+- Giảm radius/spacing/typography trên mobile; glass chỉ còn ở navigation, action bar, modal và floating toolbar.
+- Meme card dùng sáu minh họa vector mock riêng, bỏ emoji làm hệ illustration chính; media không có overlay che nội dung.
+- Player được compose lại cho 320/375/390 px với prompt solid, game timer, grid hai cột và safe-area action bar.
+- Display được compose như stage 16:9 nền twilight tại 720p/1080p, không dùng layout admin hoặc mobile navigation.
+- Admin chuyển từ statistic-card grid sang creative control studio với summary strip, round control, player list và display preview.
+- Dev showcase mở rộng cho light/dark environment, palette, typography, surface hierarchy, control states, timer, illustration và system states.
+- Thêm reusable `CelestialBackground`, `DecorativeCloud`, `DecorativeSparkle`, `QuestionCard`, `CountdownTimer`, `ConnectionIndicator`, `FloatingActionBar` và `MemeGrid`.
+- Không thêm dependency hoặc asset ngoài; attachment nhận được không chứa bốn ảnh reference, nên kiểm tra art direction dựa trên mô tả trong brief.
+
+Verification redesign:
+
+- Prettier format check: pass.
+- TypeScript strict typecheck: pass.
+- ESLint: pass, 0 warnings.
+- Vitest: pass 4/4 tests; web/game-engine chưa có unit test nên dùng `--passWithNoTests`.
+- Production build và Wrangler dry-run: pass; Vite transform 2.187 modules và bundle nhận đủ Assets/D1/R2/Durable Object bindings.
+- Visual QA bằng system Chrome: 7/7 case HTTP 200, không horizontal overflow, không browser console error.
+- Đã xem thủ công screenshot Player 320×568, Display 1280×720, Admin 1440×900 và full showcase để kiểm tra hierarchy, crop, spacing và atmosphere.
+- Playwright shell journey bằng Chrome hệ thống: pass 6/6 cho mobile Chrome và desktop Chrome.
+- WebKit/mobile Safari chưa chạy vì Playwright browser bundle chưa cài; chạy `pnpm exec playwright install` trước khi xác minh project này.
+
 ## Phase tiếp theo
 
 Phase 03 chỉ bắt đầu trong phiên phát triển kế tiếp:
@@ -60,4 +87,4 @@ Phase 03 chỉ bắt đầu trong phiên phát triển kế tiếp:
 - `ADMIN_BOOTSTRAP_PASSWORD` chỉ là định hướng Phase 03; cần thiết kế one-time bootstrap.
 - Cần xác nhận công thức điểm trước Phase 05.
 - Chưa dùng asset MisThy thật; mock meme dùng abstract pastel art/emoji để tránh quyền hình ảnh chưa rõ.
-- Playwright browser bundle chưa cài; visual QA dùng Chrome hệ thống qua `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+- Playwright WebKit browser bundle chưa cài; visual QA và Chromium E2E dùng Chrome hệ thống qua `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
