@@ -11,10 +11,10 @@ Các dịch vụ này được chọn để MVP có thể nằm trong free tier 
 
 ## Chuẩn bị
 
-1. Cài Node.js 22.12+ và pnpm 10, chạy `pnpm install`.
+1. Cài Node.js 22.13+ và pnpm 10.20.0, chạy `pnpm install --frozen-lockfile`.
 2. `wrangler login` bằng tài khoản Cloudflare của dự án.
 3. Tạo D1 và R2 bằng Wrangler/Dashboard.
-4. Thay `REPLACE_WITH_D1_DATABASE_ID` trong `apps/worker/wrangler.jsonc`; giữ file ID không nhạy cảm trong Git.
+4. Thay UUID placeholder `00000000-0000-0000-0000-000000000000` trong `apps/worker/wrangler.jsonc` bằng D1 database ID thật; ID này không phải secret và có thể giữ trong Git.
 5. Tạo secret bằng `wrangler secret put ADMIN_SESSION_SECRET` và bootstrap secret tương ứng. Không dùng `VITE_*` cho secret.
 6. Chạy migration remote sau khi đã backup/kiểm tra môi trường.
 
@@ -29,6 +29,8 @@ pnpm --filter @misthy/worker exec wrangler deploy
 ```
 
 Worker config trỏ static directory tới `apps/web/dist` và ưu tiên Worker cho `/api/*`, `/ws/*`. Route frontend khác được static asset SPA fallback phục vụ; cần xác nhận hành vi fallback bằng preview trước production.
+
+Durable Object sử dụng declarative `exports` với `storage: "sqlite"`, là lifecycle convention hiện hành cho namespace mới. D1 và R2 tiếp tục dùng bindings trong Wrangler. `pnpm deploy` build frontend, kiểm tra Worker bundle, rồi deploy chung trong một Worker version.
 
 ## Môi trường
 

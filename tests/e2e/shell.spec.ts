@@ -3,9 +3,18 @@ import { expect, test } from "@playwright/test";
 test("home exposes all three interfaces", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Meme đúng lúc/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Người chơi/i })).toHaveAttribute("href", "/play/MT2026");
-  await expect(page.getByRole("link", { name: /Màn hình/i })).toHaveAttribute("href", "/display/MT2026");
-  await expect(page.getByRole("link", { name: /Điều phối/i })).toHaveAttribute("href", "/admin/MT2026");
+  await expect(page.getByRole("link", { name: /Người chơi/i })).toHaveAttribute(
+    "href",
+    "/play/MT2026",
+  );
+  await expect(page.getByRole("link", { name: /Màn hình/i })).toHaveAttribute(
+    "href",
+    "/display/MT2026",
+  );
+  await expect(page.getByRole("link", { name: /Điều phối/i })).toHaveAttribute(
+    "href",
+    "/admin/MT2026",
+  );
 });
 
 test("player shell is usable on mobile", async ({ page }) => {
