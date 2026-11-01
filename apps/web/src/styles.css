@@ -1243,3 +1243,20 @@ button:disabled {
     animation-iteration-count: 1 !important;
   }
 }
+/* Phase 03 content studio form controls. */
+.cms-field {
+  width: 100%;
+  min-height: var(--size-touch);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.58);
+  padding: 0.7rem 0.9rem;
+  color: var(--ink-strong);
+  outline: none;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.cms-field:focus {
+  border-color: var(--periwinkle-500);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}

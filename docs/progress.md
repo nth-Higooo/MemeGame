@@ -73,9 +73,8 @@ Verification redesign:
 
 ## Phase tiếp theo
 
-Phase 03 chỉ bắt đầu trong phiên phát triển kế tiếp:
+Phase 04 starts in a separate development session:
 
-- Admin authentication/password hashing/cookie/CSRF/rate limit.
 - API tạo session; player join, reconnect token và lobby presence.
 - Kết nối UI vào WebSocket thật, client clock offset, reconnect backoff và state store.
 - Chuyển copy chi tiết còn lại vào locale catalog trước khi thêm ngôn ngữ thứ hai.
@@ -84,7 +83,35 @@ Phase 03 chỉ bắt đầu trong phiên phát triển kế tiếp:
 
 - `wrangler.jsonc` dùng UUID rỗng hợp lệ làm placeholder D1 database ID; phải thay khi tạo tài nguyên production.
 - UI Phase 02 chỉ dùng mock data; không có backend gameplay, voting hoặc scoring.
-- `ADMIN_BOOTSTRAP_PASSWORD` chỉ là định hướng Phase 03; cần thiết kế one-time bootstrap.
+- Rotate or remove `ADMIN_BOOTSTRAP_PASSWORD` after the first production owner is created.
 - Cần xác nhận công thức điểm trước Phase 05.
 - Chưa dùng asset MisThy thật; mock meme dùng abstract pastel art/emoji để tránh quyền hình ảnh chưa rõ.
 - Playwright WebKit browser bundle chưa cài; visual QA và Chromium E2E dùng Chrome hệ thống qua `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+
+## Phase 03 — Database and Content Management
+
+Status: **complete**.
+
+- Added D1 migration `0002_content_management.sql` for canonical admin identity, meme assets, questions/collections, presets, ordering, score events, and login-attempt auditing. Phase 01 gameplay tables remain compatible.
+- Added original metadata-only placeholder seeds; no copyrighted production media is bundled.
+- Implemented one-time owner bootstrap, PBKDF2 password storage, signed HttpOnly sessions, login throttling, mutation CSRF/origin checks, and protected admin APIs.
+- Implemented R2 upload with configurable 10 MiB default, MIME allowlist, GIF/PNG/WebP/JPEG signature checks, unique keys, metadata search/edit, authenticated preview, archive, and safe hard delete.
+- Implemented question/preset CRUD, ordering, preview, individual-mode validation, durations, voting/scoring rules, and tie-breakers.
+- Implemented schema-versioned JSON import/export with Zod validation, clear reference errors, and reject/skip/regenerate duplicate handling.
+- Added `/admin/:sessionCode/content` for bootstrap/login, animated preview, content authoring, lifecycle actions, and import/export. Gameplay logic remains out of scope.
+- Added tests for content schemas, media signatures/limits, password verification, and session signing.
+
+Verification:
+
+- Prettier, ESLint, and strict TypeScript checks pass.
+- Vitest passes 12 tests total (5 shared, 7 Worker); web/game-engine currently have no unit files.
+- Both D1 migrations apply locally; Phase 03 executed 28 SQL commands successfully.
+- Vite production build and Wrangler deployment dry-run pass with Static Assets, D1, R2, and Durable Object bindings.
+- Chrome smoke check: Content Studio login returns HTTP 200 at 1440×1000 with no horizontal overflow; `/api/health` returns 200. The unauthenticated auth probe correctly returns 401.
+
+Known limitations:
+
+- JSON export excludes R2 binaries; referenced destination assets must already exist.
+- Team mode is reserved but rejected; individual mode is implemented first.
+- The CMS does not transcode media; curators upload web-ready originals.
+- Join/reconnect, the round engine, voting, and score execution remain future phases.

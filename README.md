@@ -33,7 +33,8 @@ pnpm dev
 - Web: `http://localhost:5173`
 - Worker/API: `http://localhost:8787`
 - Health qua Vite proxy: `http://localhost:5173/api/health`.
-- Route: `/play/MT2026`, `/display/MT2026`, `/admin/MT2026`.
+- Routes: `/play/MT2026`, `/display/MT2026`, `/admin/MT2026`.
+- Content Studio: `/admin/MT2026/content` (first visit can bootstrap the owner using `ADMIN_BOOTSTRAP_PASSWORD`).
 
 `pnpm dev` chạy Vite và Wrangler song song; Vite proxy `/api` và `/ws` sang Worker. Để kiểm tra đúng mô hình một origin như production, chạy:
 
@@ -63,3 +64,7 @@ pnpm test:e2e
 `pnpm build` tạo frontend tại `apps/web/dist` rồi chạy Wrangler dry-run để xác nhận một bundle triển khai gồm static assets và API. Khi đã tạo D1/R2 production và thay placeholder binding, dùng `pnpm deploy`.
 
 Các route demo trong Phase 01 là UI shell bằng dữ liệu mẫu. Xem [tiến độ](docs/progress.md) trước khi phát triển tiếp.
+
+## Content storage
+
+Phase 03 stores structured content in D1 and image bytes in private R2. The default upload cap is 10 MiB (`MAX_UPLOAD_BYTES`). JSON export contains questions and presets, not image binaries. See [database](docs/database.md) and [deployment](docs/deployment.md).

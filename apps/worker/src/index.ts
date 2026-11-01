@@ -2,6 +2,7 @@ import { sessionCodeSchema } from "@misthy/shared";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
+import { adminApi } from "./admin-api";
 import { GameSession } from "./game-session";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -26,6 +27,8 @@ app.get("/api/health", (c) =>
     timestamp: new Date().toISOString(),
   }),
 );
+
+app.route("/api/admin", adminApi);
 
 app.get("/ws/:sessionCode", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));

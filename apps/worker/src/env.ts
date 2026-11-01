@@ -5,4 +5,5 @@ export interface Env {
   GAME_SESSIONS: DurableObjectNamespace;
   ADMIN_SESSION_SECRET: string;
   ADMIN_BOOTSTRAP_PASSWORD: string;
+  MAX_UPLOAD_BYTES?: string;
 }

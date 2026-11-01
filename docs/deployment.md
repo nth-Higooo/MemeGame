@@ -1,41 +1,42 @@
-# Triển khai Cloudflare
+# Cloudflare deployment
 
-## Tài nguyên
+One Worker serves Hono `/api/*` and `/ws/*` routes plus the Vite bundle through Workers Static Assets. D1, R2, and the SQLite-backed `GameSession` Durable Object are configured in `apps/worker/wrangler.jsonc`.
 
-- Một Worker phục vụ Hono API, WebSocket Durable Object và static assets.
-- Một D1 database `misthy-meme-party`.
-- Một R2 bucket `misthy-meme-library`.
-- Durable Object class `GameSession` dùng SQLite-backed storage.
-
-Các dịch vụ này được chọn để MVP có thể nằm trong free tier hiện hành; luôn kiểm tra giới hạn Cloudflare tại thời điểm triển khai.
-
-## Chuẩn bị
-
-1. Cài Node.js 22.13+ và pnpm 10.20.0, chạy `pnpm install --frozen-lockfile`.
-2. `wrangler login` bằng tài khoản Cloudflare của dự án.
-3. Tạo D1 và R2 bằng Wrangler/Dashboard.
-4. Thay UUID placeholder `00000000-0000-0000-0000-000000000000` trong `apps/worker/wrangler.jsonc` bằng D1 database ID thật; ID này không phải secret và có thể giữ trong Git.
-5. Tạo secret bằng `wrangler secret put ADMIN_SESSION_SECRET` và bootstrap secret tương ứng. Không dùng `VITE_*` cho secret.
-6. Chạy migration remote sau khi đã backup/kiểm tra môi trường.
-
-## Build và deploy
+## Resources
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm --filter @misthy/web build
-pnpm --filter @misthy/worker db:migrate:remote
-pnpm --filter @misthy/worker exec wrangler deploy
+wrangler login
+wrangler d1 create misthy-meme-party
+wrangler r2 bucket create misthy-meme-library
 ```
 
-Worker config trỏ static directory tới `apps/web/dist` và ưu tiên Worker cho `/api/*`, `/ws/*`. Route frontend khác được static asset SPA fallback phục vụ; cần xác nhận hành vi fallback bằng preview trước production.
+Replace the placeholder D1 `database_id` in Wrangler config. Use separate preview and production resources.
 
-Durable Object sử dụng declarative `exports` với `storage: "sqlite"`, là lifecycle convention hiện hành cho namespace mới. D1 và R2 tiếp tục dùng bindings trong Wrangler. `pnpm deploy` build frontend, kiểm tra Worker bundle, rồi deploy chung trong một Worker version.
+Copy `.env.example` to `apps/worker/.dev.vars` locally. For production secrets:
 
-## Môi trường
+```bash
+cd apps/worker
+wrangler secret put ADMIN_SESSION_SECRET
+wrangler secret put ADMIN_BOOTSTRAP_PASSWORD
+```
 
-Nên dùng Worker/D1/R2 riêng cho preview và production. Production bật observability, custom domain/HTTPS và alert theo error rate. Không deploy Phase 01: auth và gameplay engine chưa hoàn chỉnh.
+Never expose these values through `VITE_*`. Rotate or remove the bootstrap secret after the first owner exists.
 
-## Rollback
+`MAX_UPLOAD_BYTES` is non-secret and defaults to `10485760` (10 MiB). Keep it within current Workers request/memory limits. The API accepts GIF, WebP, PNG, and JPEG only and verifies the declared MIME type plus binary signature.
 
-Rollback Worker bằng Cloudflare version/deployment trước. Migration D1 cần forward-fix; không tự động down-migrate dữ liệu production. R2 object dùng key bất biến và metadata active flag để có thể thu hồi mà không xóa ngay.
+## Migrate and deploy
+
+```bash
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm --filter @misthy/worker db:migrate:remote
+pnpm deploy
+```
+
+Bootstrap the first owner at `/admin/<SESSION_CODE>/content`, or call `POST /api/admin/auth/bootstrap` with `X-Bootstrap-Secret`. Bootstrap returns `409` after an account exists.
+
+R2 is private in Phase 03; authenticated admins stream previews through the Worker. Archiving is the normal removal path. Hard delete is restricted to unreferenced assets and removes D1 metadata and the R2 object. A failed D1 insert after upload triggers compensating R2 deletion.
+
+Rollback application code using Cloudflare deployment versions. Fix D1 schema problems with a reviewed forward migration.

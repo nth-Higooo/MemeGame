@@ -35,3 +35,7 @@ Shared contract và Worker health/404 routes có unit test. Smoke test local dù
 ## Visual QA Phase 02
 
 `pnpm visual:check` chụp player 320×700, display 1600×900, admin 1440×1000 và dev showcase. Script fail nếu route không trả 200, có horizontal overflow hoặc browser console error. Có thể dùng Playwright Chromium đã cài hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` tới Chrome/Edge hệ thống. Output nằm trong `artifacts/phase02` và bị Git ignore.
+
+## Phase 03 content checks
+
+Vitest covers shared Zod defaults/import rejection, image magic-byte detection, upload-limit parsing, PBKDF2 verification, and signed-session tamper rejection. Apply both migrations to a disposable local Wrangler D1 database before release. Manual CMS smoke testing covers bootstrap/login, animated GIF preview, upload, filters, archive safety, question reorder, both preset modes, export, and each duplicate import strategy.

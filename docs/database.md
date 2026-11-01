@@ -1,34 +1,37 @@
-# Dữ liệu
+# Database and content storage
 
-## Chọn nơi lưu
+## Storage ownership
 
-- D1: session metadata, admin/player identity, round history, submissions, votes, meme metadata và audit log.
-- Durable Object storage: state/checkpoint nhỏ của phòng đang hoạt động và alarm metadata.
-- R2: binary meme/GIF với object key ngẫu nhiên; không dùng filename người upload làm key.
+- Cloudflare D1 stores identity, content metadata, relationships, sessions, rounds, players, submissions, votes, and score history.
+- Cloudflare R2 stores uploaded GIF, WebP, PNG, and JPEG bytes. D1 stores the immutable, server-generated object key.
+- Durable Object storage will hold short-lived authoritative room state and recovery checkpoints in a later gameplay phase.
 
-Migration đầu tiên nằm tại `apps/worker/migrations/0001_initial.sql`.
+Never use an uploaded filename as an R2 key. Phase 03 uses `memes/YYYY/MM/<uuid>.<verified-extension>`.
 
-## Quan hệ chính
+## Migrations
 
-`sessions` có nhiều `players`, `rounds`, `admins` và `audit_events`. Mỗi `round` có `submissions`; mỗi `submission` tham chiếu `player` và `meme`. `votes` tham chiếu voter và submission.
+- `0001_initial.sql`: session/gameplay foundation (`sessions`, legacy session-scoped `admins`, `players`, legacy `memes`, `rounds`, `submissions`, `votes`, `audit_events`).
+- `0002_content_management.sql`: canonical `admin_users`, `meme_assets`, `questions`, `question_meme_assets`, `game_presets`, `preset_questions`, `score_events`, and login-attempt audit data. It also adds preset/question timing references to gameplay tables.
 
-Các unique constraint quan trọng:
+```bash
+pnpm db:migrate:local
+pnpm --filter @misthy/worker db:migrate:remote
+```
 
-- `sessions.code`: mã phòng duy nhất.
-- `(round_id, player_id)` trong submissions: chống gửi trùng.
-- `(round_id, voter_player_id)` trong votes: chống vote trùng.
-- `reconnect_token_hash`: một token không ánh xạ hai player.
+Run the remote command only after selecting the intended database and taking a backup. Never edit a migration that has run remotely; add a numbered forward migration.
 
-## Quy ước
+## Content model
 
-- ID là UUID/ULID tạo phía server, lưu `TEXT`.
-- Timestamp là UTC ISO-8601 với mili giây.
-- Boolean D1 là `INTEGER` 0/1 có `CHECK`.
-- JSON chỉ dùng cho audit payload; dữ liệu cần query phải có cột riêng.
-- Token và password không lưu plaintext. Password dùng Web Crypto-compatible password hashing strategy được chốt trong Phase 03; reconnect/session token dùng SHA-256/HMAC phù hợp mục đích.
+`meme_assets` contains searchable metadata and an optional R2 reference. `PLACEHOLDER` seed rows intentionally have no binary object and remain `DRAFT`. `questions` can reference one attachment and an ordered allowed-meme collection. `game_presets` contains mode, individual/team flag, duration, voting/scoring rules, tie-breaker, and an ordered question collection.
 
-## Transaction và consistency
+Phase 03 implements `INDIVIDUAL`; API validation rejects reserved `TEAM` presets. Referenced assets are archived instead of deleted. Questions in presets and presets assigned to sessions cannot be deleted.
 
-DO xử lý một command tại một thời điểm. Mutation nghiệp vụ ghi D1 trong transaction/batch có điều kiện, sau đó cập nhật checkpoint và broadcast. Nếu broadcast thất bại, client reconnect nhận snapshot. Nếu persistence thất bại, mutation không được công bố là thành công.
+Gameplay uniqueness remains enforced by `(round_id, player_id)` for submissions and `(round_id, voter_player_id)` for votes. `score_events` is append-only scoring history.
 
-Không sửa migration đã chạy. Mỗi thay đổi schema tạo file số thứ tự mới và ghi backward/forward behavior trong pull request hoặc progress log.
+## Authentication data
+
+Passwords use PBKDF2-SHA-256 with a unique 128-bit salt and 120,000 iterations through Workers Web Crypto. Admin sessions are eight-hour HMAC-SHA-256 signed HttpOnly cookies. Failed logins are rate-limited by email plus a SHA-256 IP digest.
+
+## Import/export
+
+Content pack schema version 1 exports questions, presets, order, rules, and asset IDs, but not R2 binaries or secrets. Import validates everything first and supports `REJECT`, `SKIP`, and `REGENERATE` duplicate strategies. Every referenced meme asset must already exist in the target D1 database.

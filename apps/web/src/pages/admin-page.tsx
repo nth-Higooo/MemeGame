@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Radio,
   Settings2,
+  Images,
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -41,6 +42,9 @@ export function AdminPage({ sessionCode }: { sessionCode: string }) {
                 <Icon aria-hidden="true" size={16} /> {label}
               </a>
             ))}
+            <a href={`/admin/${sessionCode}/content`}>
+              <Images aria-hidden="true" size={16} /> Nội dung
+            </a>
           </nav>
           <div className="admin-room">
             <span>Mã phòng</span>
