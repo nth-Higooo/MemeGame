@@ -9,6 +9,7 @@ Hệ thống ưu tiên độ trễ thấp, khôi phục kết nối và chi phí
 ```text
 apps/web       React UI: play, display, admin
 apps/worker    Hono API + GameSession Durable Object
+packages/game-engine  Mini-game interfaces; chưa có gameplay implementation
 packages/shared  Zod schemas và TypeScript contracts
 ```
 
@@ -42,3 +43,5 @@ Admin đăng nhập qua password đã hash và nhận cookie `HttpOnly`, `Secure
 ## Mở rộng mini-game
 
 Game engine nên tách `GameDefinition` (phase graph, commands, public projections, scoring) khỏi transport và persistence. Meme Party là definition đầu tiên; session/identity/reconnect vẫn dùng chung cho mini-game sau.
+
+Phase 01 chỉ khai báo interface `GameDefinition`; chưa có transition, scoring hoặc luật chơi thực thi. Điều này giữ ranh giới package rõ mà không kéo gameplay vào phase nền tảng.

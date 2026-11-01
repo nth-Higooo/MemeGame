@@ -10,8 +10,12 @@ export function Brand({ compact = false }: { compact?: boolean }) {
       </span>
       {!compact && (
         <span className="leading-none">
-          <strong className="block text-[1.05rem] font-extrabold tracking-[-0.035em] text-violet-950">{brand.name}</strong>
-          <span className="mt-1 block text-[.7rem] font-bold uppercase tracking-[.25em] text-fuchsia-600">{brand.suffix}</span>
+          <strong className="block text-[1.05rem] font-extrabold tracking-[-0.035em] text-violet-950">
+            {brand.name}
+          </strong>
+          <span className="mt-1 block text-[.7rem] font-bold uppercase tracking-[.25em] text-fuchsia-600">
+            {brand.suffix}
+          </span>
         </span>
       )}
     </a>

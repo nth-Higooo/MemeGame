@@ -30,4 +30,4 @@ Không dùng snapshot khổng lồ cho game state. Test theo behavior và invari
 
 ## Phase 01
 
-Có unit test mẫu cho shared contract. Môi trường tạo code hiện tại không có Node/pnpm nên chưa cài dependency hoặc chạy test/build; đây là giới hạn đã ghi trong `progress.md`.
+Shared contract và Worker health/404 routes có unit test. Smoke test local dùng Wrangler để xác nhận `/api/health` cùng ba SPA route trên một origin. Playwright journey đã cấu hình cho mobile Chrome, mobile Safari và desktop Chrome; browser binaries được cài riêng bằng `pnpm exec playwright install`.

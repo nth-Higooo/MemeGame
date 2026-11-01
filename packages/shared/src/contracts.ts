@@ -43,7 +43,10 @@ export const publicSessionStateSchema = z.object({
 export type PublicSessionState = z.infer<typeof publicSessionStateSchema>;
 
 export const clientMessageSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("CLIENT_READY"), lastKnownVersion: z.number().int().nonnegative().optional() }),
+  z.object({
+    type: z.literal("CLIENT_READY"),
+    lastKnownVersion: z.number().int().nonnegative().optional(),
+  }),
   z.object({ type: z.literal("PING"), sentAt: z.number().int().nonnegative() }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;

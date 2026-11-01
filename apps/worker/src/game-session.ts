@@ -1,8 +1,4 @@
-import {
-  clientMessageSchema,
-  type PublicSessionState,
-  type ServerMessage,
-} from "@misthy/shared";
+import { clientMessageSchema, type PublicSessionState, type ServerMessage } from "@misthy/shared";
 import type { Env } from "./env";
 
 const textEncoder = new TextEncoder();
@@ -40,7 +36,11 @@ export class GameSession implements DurableObject {
   async webSocketMessage(socket: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
     const text = typeof rawMessage === "string" ? rawMessage : new TextDecoder().decode(rawMessage);
     if (textEncoder.encode(text).byteLength > 8_192) {
-      this.send(socket, { type: "ERROR", code: "MESSAGE_TOO_LARGE", message: "Tin nhắn vượt quá giới hạn." });
+      this.send(socket, {
+        type: "ERROR",
+        code: "MESSAGE_TOO_LARGE",
+        message: "Tin nhắn vượt quá giới hạn.",
+      });
       socket.close(1009, "Message too large");
       return;
     }
@@ -55,7 +55,11 @@ export class GameSession implements DurableObject {
 
     const parsed = clientMessageSchema.safeParse(candidate);
     if (!parsed.success) {
-      this.send(socket, { type: "ERROR", code: "INVALID_MESSAGE", message: "Loại tin nhắn chưa được hỗ trợ." });
+      this.send(socket, {
+        type: "ERROR",
+        code: "INVALID_MESSAGE",
+        message: "Loại tin nhắn chưa được hỗ trợ.",
+      });
       return;
     }
 

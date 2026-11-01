@@ -6,21 +6,26 @@ import { GameSession } from "./game-session";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("*", secureHeaders({
-  contentSecurityPolicy: {
-    defaultSrc: ["'self'"],
-    connectSrc: ["'self'", "wss:"],
-    imgSrc: ["'self'", "data:", "blob:"],
-    styleSrc: ["'self'", "'unsafe-inline'"],
-  },
-  strictTransportSecurity: "max-age=31536000; includeSubDomains",
-}));
+app.use(
+  "*",
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "wss:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+    strictTransportSecurity: "max-age=31536000; includeSubDomains",
+  }),
+);
 
-app.get("/api/health", (c) => c.json({
-  ok: true as const,
-  service: "misthy-meme-party-api" as const,
-  timestamp: new Date().toISOString(),
-}));
+app.get("/api/health", (c) =>
+  c.json({
+    ok: true as const,
+    service: "misthy-meme-party-api" as const,
+    timestamp: new Date().toISOString(),
+  }),
+);
 
 app.get("/ws/:sessionCode", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));
@@ -33,6 +38,8 @@ app.get("/ws/:sessionCode", async (c) => {
   return c.env.GAME_SESSIONS.get(id).fetch(c.req.raw);
 });
 
+app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
+app.all("/ws/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export { GameSession };

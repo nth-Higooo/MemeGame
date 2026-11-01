@@ -8,6 +8,7 @@
     "cf:typegen": "wrangler types worker-configuration.d.ts",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
@@ -17,7 +18,7 @@
     "hono": "4.13.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "4.20261011.0",
+    "@cloudflare/workers-types": "5.20261101.1",
     "wrangler": "4.156.0"
   }
 }

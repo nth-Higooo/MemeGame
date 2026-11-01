@@ -8,6 +8,7 @@ Before changing code, read `docs/progress.md`, the relevant requirement/design d
 
 - `apps/web`: React/Vite browser application.
 - `apps/worker`: Hono API, Durable Object real-time authority, D1 migrations, and Cloudflare deployment config.
+- `packages/game-engine`: transport-independent mini-game contracts and, in later phases, state transitions.
 - `packages/shared`: runtime-validated contracts shared by browser and Worker.
 - `docs`: product and engineering decisions.
 - `tests/e2e`: cross-interface Playwright journeys.
