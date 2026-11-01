@@ -27,7 +27,7 @@ Sau reveal, talent chọn một submission. Admin có thể ghi quyết định 
 
 ## Điểm
 
-MVP đề xuất winner nhận 100 điểm, các player khác 0 điểm/vòng. Cách tính cuối cùng sẽ được xác nhận trước Phase 04 và cấu hình server-side.
+MVP đề xuất winner nhận 100 điểm, các player khác 0 điểm/vòng. Cách tính cuối cùng sẽ được xác nhận trước Phase 05 và cấu hình server-side.
 
 ## Trường hợp lỗi
 

@@ -32,13 +32,13 @@ Luồng chính:
 ## Khả năng phục hồi
 
 - WebSocket hibernation giảm thời gian CPU khi phòng không có message.
-- DO alarm sẽ được thêm ở Phase 03 để chuyển phase đúng hạn ngay cả khi không có client online.
+- DO alarm sẽ được thêm ở Phase 04 để chuyển phase đúng hạn ngay cả khi không có client online.
 - Mỗi admin command sẽ có idempotency key và audit event.
 - Rollback nghiệp vụ không xóa lịch sử: admin tạo command bù hoặc khôi phục checkpoint, tăng revision và phát snapshot mới.
 
 ## Bảo mật
 
-Admin đăng nhập qua password đã hash và nhận cookie `HttpOnly`, `Secure`, `SameSite=Strict`. Session/reconnect token chỉ lưu dạng hash trong D1. Upload đi qua API, kiểm tra magic bytes, MIME, kích thước, chiều ảnh và giới hạn tốc độ trước khi ghi R2. Các phần này được triển khai ở Phase 02–04.
+Admin đăng nhập qua password đã hash và nhận cookie `HttpOnly`, `Secure`, `SameSite=Strict`. Session/reconnect token chỉ lưu dạng hash trong D1. Upload đi qua API, kiểm tra magic bytes, MIME, kích thước, chiều ảnh và giới hạn tốc độ trước khi ghi R2. Các phần này được triển khai ở Phase 03–06.
 
 ## Mở rộng mini-game
 
