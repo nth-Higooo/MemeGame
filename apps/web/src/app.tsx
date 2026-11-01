@@ -1,5 +1,6 @@
 import { sessionCodeSchema } from "@misthy/shared";
 import { AdminPage } from "./pages/admin-page";
+import { DesignSystemPage } from "./pages/design-system-page";
 import { DisplayPage } from "./pages/display-page";
 import { HomePage } from "./pages/home-page";
 import { PlayPage } from "./pages/play-page";
@@ -14,6 +15,9 @@ function resolveRoute(pathname: string) {
 }
 
 export function App() {
+  if (import.meta.env.DEV && window.location.pathname === "/dev/design-system") {
+    return <DesignSystemPage />;
+  }
   const route = resolveRoute(window.location.pathname);
   if (!route) return <HomePage />;
   if (route.role === "play") return <PlayPage sessionCode={route.sessionCode} />;

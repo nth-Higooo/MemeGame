@@ -36,8 +36,9 @@ Chat công khai, upload tự do từ người chơi, thanh toán, multi-region d
 ## Phân kỳ
 
 - Phase 01 — foundation: repo, contracts, UI shell, DO connection, schema, docs.
-- Phase 02 — identity/session: admin auth, create/join/reconnect, lobby state.
-- Phase 03 — round engine: phase machine, alarms, submit/reveal, recovery.
-- Phase 04 — community voting và talent decision; scoring/results.
-- Phase 05 — meme library/admin upload/R2 validation.
-- Phase 06 — hardening, accessibility, observability, E2E, production deploy.
+- Phase 02 — Liquid Glass design system: tokens, components, responsive role layouts, mock states và visual QA.
+- Phase 03 — identity/session: admin auth, create/join/reconnect, lobby state.
+- Phase 04 — round engine: phase machine, alarms, submit/reveal, recovery.
+- Phase 05 — community voting và talent decision; scoring/results.
+- Phase 06 — meme library/admin upload/R2 validation.
+- Phase 07 — hardening, accessibility, observability, E2E, production deploy.

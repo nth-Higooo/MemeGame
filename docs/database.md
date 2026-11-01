@@ -25,7 +25,7 @@ Các unique constraint quan trọng:
 - Timestamp là UTC ISO-8601 với mili giây.
 - Boolean D1 là `INTEGER` 0/1 có `CHECK`.
 - JSON chỉ dùng cho audit payload; dữ liệu cần query phải có cột riêng.
-- Token và password không lưu plaintext. Password dùng Web Crypto-compatible password hashing strategy được chốt trong Phase 02; reconnect/session token dùng SHA-256/HMAC phù hợp mục đích.
+- Token và password không lưu plaintext. Password dùng Web Crypto-compatible password hashing strategy được chốt trong Phase 03; reconnect/session token dùng SHA-256/HMAC phù hợp mục đích.
 
 ## Transaction và consistency
 

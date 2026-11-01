@@ -4,50 +4,87 @@ Cập nhật: 2026-11-01 (Asia/Bangkok)
 
 ## Phase 01 — Foundation
 
-Trạng thái: **hoàn thành và đã xác minh acceptance criteria**.
+Trạng thái: **hoàn thành**.
+
+- Monorepo pnpm với React/Vite web, Hono Worker, shared contracts và game-engine boundary.
+- TypeScript strict, ESLint, Prettier, Vitest, Playwright và frozen lockfile.
+- Cloudflare Static Assets, D1, R2 và SQLite-backed Durable Object bindings.
+- `/api/health`, ba role route, D1 migration và tài liệu nền.
+- Verification Phase 01: clean install, lint, typecheck, 4 unit tests, Vite build, Wrangler dry-run, D1 local migration và single-origin smoke test đều pass.
+
+## Phase 02 — Liquid Glass Design System
+
+Trạng thái: **hoàn thành**.
 
 Đã hoàn thành:
 
-- Monorepo pnpm với `apps/web`, `apps/worker`, `packages/shared`, `packages/game-engine` và TypeScript strict.
-- ESLint flat config, Prettier, Vitest, Playwright, frozen lockfile và quality-gate scripts.
-- Shared Zod contract cho session code, game mode/phase, public snapshot và WebSocket handshake/sync.
-- React/Vite UI shell tiếng Việt cho home, player, display và admin; liquid-glass design tokens, responsive layouts, safe area và reduced-motion.
-- Typed locale catalog với tiếng Việt là mặc định; cấu trúc sẵn sàng thêm catalog ngôn ngữ khác.
-- Component `Button` theo shadcn/ui composition và glass primitives dùng lại được.
-- Hono Worker có security headers, `/api/health`, WebSocket routing theo mã phòng và static asset fallback.
-- `GameSession` Durable Object dùng WebSocket hibernation API, size/input validation, ping/pong và persisted initial snapshot.
-- Cấu hình Static Assets, D1, R2, SQLite-backed Durable Object declarative exports và observability theo convention Cloudflare hiện hành.
-- D1 migration ban đầu với constraint chống duplicate submission/vote và audit table.
-- Vitest tests cho shared contracts và Worker health/404; Playwright multi-device config và SPA smoke journeys.
-- Toàn bộ tài liệu nền bắt buộc và `.env.example`.
+- Semantic design tokens cho pastel colors, typography, spacing, touch size, radius, shadow, glass surfaces, focus và spring easing.
+- Pastel ambient background có noise/light field nhẹ; tự tắt chuyển động theo reduced motion.
+- Reusable `GlassCard`, `GlassButton`, `GlassModal`, `GlassNavbar`, `GlassInput`, `GlassBadge`, `MemeCard`, `FeedbackState` và `AmbientBackground`.
+- Regular/subtle/solid/clear surface variants; reduced-transparency và increased-contrast fallbacks.
+- Player mobile layout với search/filter, two-column meme grid, selection state và safe-area bottom action bar. Đã kiểm tra viewport 320×700.
+- Display fullscreen 16:9 với prompt hierarchy, progress, countdown và anonymous meme preview. Đã kiểm tra 1600×900.
+- Admin desktop/tablet shell với floating sidebar/header, stats, active round và player list. Đã kiểm tra 1440×1000.
+- Loading, empty, error và disconnected states có label/icon/action rõ ràng.
+- Mock round, meme và player data tách tại `apps/web/src/data/mock-data.ts`.
+- Dev-only showcase tại `/dev/design-system`.
+- Reusable visual QA script `pnpm visual:check` và ảnh local trong `artifacts/phase02`.
+- `docs/design-system.md` ghi token, component contract, layout và verification workflow.
 
-## Chưa làm / Phase tiếp theo
+## Verification Phase 02
 
-Phase 02 chỉ bắt đầu trong phiên phát triển kế tiếp:
+- Web TypeScript strict typecheck: pass.
+- ESLint: pass, 0 warnings.
+- Browser visual QA bằng system Chrome: player, display, admin và showcase đều HTTP 200.
+- Không có horizontal overflow ở bốn viewport đại diện.
+- Không có browser console error sau khi thêm inline favicon.
+- Screenshots được xem thủ công để kiểm tra hierarchy, crop, CTA, projector scale và dashboard density.
+- Full strict typecheck: pass cho shared, game-engine, web và worker.
+- Vitest: pass 4/4 tests; web/game-engine hiện chưa có unit test nên dùng `--passWithNoTests`.
+- Vite production build: pass, 2,181 modules transformed.
+- Wrangler 4.156.0 dry-run: pass; bundle nhận đủ Assets, D1, R2 và Durable Object bindings.
+
+## Phase 02 visual redesign — Celestial Pastel Glass
+
+Hoàn thành refinement theo art direction mới, vẫn giữ nguyên route, stack và mock-only behavior:
+
+- Thay gradient orb background bằng celestial scene có cloud, sparkle, star và grain SVG/CSS nội bộ.
+- Curated palette Candy Pink, Soft Lilac, Cloud Blue, Peach, Periwinkle, Mint, Warm White và Midnight Indigo; primary action dùng solid indigo.
+- Giảm radius/spacing/typography trên mobile; glass chỉ còn ở navigation, action bar, modal và floating toolbar.
+- Meme card dùng sáu minh họa vector mock riêng, bỏ emoji làm hệ illustration chính; media không có overlay che nội dung.
+- Player được compose lại cho 320/375/390 px với prompt solid, game timer, grid hai cột và safe-area action bar.
+- Display được compose như stage 16:9 nền twilight tại 720p/1080p, không dùng layout admin hoặc mobile navigation.
+- Admin chuyển từ statistic-card grid sang creative control studio với summary strip, round control, player list và display preview.
+- Dev showcase mở rộng cho light/dark environment, palette, typography, surface hierarchy, control states, timer, illustration và system states.
+- Thêm reusable `CelestialBackground`, `DecorativeCloud`, `DecorativeSparkle`, `QuestionCard`, `CountdownTimer`, `ConnectionIndicator`, `FloatingActionBar` và `MemeGrid`.
+- Không thêm dependency hoặc asset ngoài; attachment nhận được không chứa bốn ảnh reference, nên kiểm tra art direction dựa trên mô tả trong brief.
+
+Verification redesign:
+
+- Prettier format check: pass.
+- TypeScript strict typecheck: pass.
+- ESLint: pass, 0 warnings.
+- Vitest: pass 4/4 tests; web/game-engine chưa có unit test nên dùng `--passWithNoTests`.
+- Production build và Wrangler dry-run: pass; Vite transform 2.187 modules và bundle nhận đủ Assets/D1/R2/Durable Object bindings.
+- Visual QA bằng system Chrome: 7/7 case HTTP 200, không horizontal overflow, không browser console error.
+- Đã xem thủ công screenshot Player 320×568, Display 1280×720, Admin 1440×900 và full showcase để kiểm tra hierarchy, crop, spacing và atmosphere.
+- Playwright shell journey bằng Chrome hệ thống: pass 6/6 cho mobile Chrome và desktop Chrome.
+- WebKit/mobile Safari chưa chạy vì Playwright browser bundle chưa cài; chạy `pnpm exec playwright install` trước khi xác minh project này.
+
+## Phase tiếp theo
+
+Phase 03 chỉ bắt đầu trong phiên phát triển kế tiếp:
 
 - Admin authentication/password hashing/cookie/CSRF/rate limit.
 - API tạo session; player join, reconnect token và lobby presence.
-- Chuyển phần copy chi tiết còn lại vào locale catalog trước khi thêm ngôn ngữ thứ hai.
 - Kết nối UI vào WebSocket thật, client clock offset, reconnect backoff và state store.
-- Worker integration test harness cho Durable Object và E2E gameplay journey thật.
-
-Các phase 03–06 được mô tả trong `requirements.md`.
+- Chuyển copy chi tiết còn lại vào locale catalog trước khi thêm ngôn ngữ thứ hai.
 
 ## Known issues / quyết định cần chốt
 
-- `wrangler.jsonc` dùng UUID rỗng hợp lệ làm placeholder D1 database ID; phải thay sau khi tạo tài nguyên Cloudflare production.
-- UI Phase 01 dùng dữ liệu minh họa; chưa phải gameplay hoạt động.
-- `ADMIN_BOOTSTRAP_PASSWORD` chỉ là định hướng setup Phase 02; cần thiết kế one-time bootstrap, không giữ secret lâu dài.
-- Cần xác nhận công thức điểm (đề xuất winner +100) trước Phase 04.
-- Chưa có asset MisThy thật; chỉ dùng abstract gradient/emoji để tránh quyền sử dụng hình ảnh chưa rõ.
-
-## Verification log
-
-- Dependency install: thành công bằng Node.js 26.13.0 LTS portable và pnpm 10.20.0; `pnpm-lock.yaml` đã tạo và frozen reinstall thành công.
-- `pnpm lint`: pass, 0 warnings.
-- TypeScript strict typecheck: pass cho shared, game-engine, web và worker.
-- Vitest: pass 4/4 tests; web/game-engine hiện chưa có unit test nên dùng `--passWithNoTests`.
-- Production build: Vite build pass; Wrangler 4.156.0 dry-run pass và nhận đủ Assets, D1, R2, Durable Object bindings.
-- D1 local migration: `0001_initial.sql` pass, 15 commands.
-- Single-origin smoke test qua `wrangler dev`: `/api/health`, `/play/MT2026`, `/display/MT2026`, `/admin/MT2026` đều trả HTTP 200.
-- Playwright browser binaries chưa được tải trong môi trường này; suite/config đã tạo nhưng `pnpm test:e2e` chưa chạy.
+- `wrangler.jsonc` dùng UUID rỗng hợp lệ làm placeholder D1 database ID; phải thay khi tạo tài nguyên production.
+- UI Phase 02 chỉ dùng mock data; không có backend gameplay, voting hoặc scoring.
+- `ADMIN_BOOTSTRAP_PASSWORD` chỉ là định hướng Phase 03; cần thiết kế one-time bootstrap.
+- Cần xác nhận công thức điểm trước Phase 05.
+- Chưa dùng asset MisThy thật; mock meme dùng abstract pastel art/emoji để tránh quyền hình ảnh chưa rõ.
+- Playwright WebKit browser bundle chưa cài; visual QA và Chromium E2E dùng Chrome hệ thống qua `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.

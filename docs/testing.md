@@ -31,3 +31,7 @@ Không dùng snapshot khổng lồ cho game state. Test theo behavior và invari
 ## Phase 01
 
 Shared contract và Worker health/404 routes có unit test. Smoke test local dùng Wrangler để xác nhận `/api/health` cùng ba SPA route trên một origin. Playwright journey đã cấu hình cho mobile Chrome, mobile Safari và desktop Chrome; browser binaries được cài riêng bằng `pnpm exec playwright install`.
+
+## Visual QA Phase 02
+
+`pnpm visual:check` chụp player 320×700, display 1600×900, admin 1440×1000 và dev showcase. Script fail nếu route không trả 200, có horizontal overflow hoặc browser console error. Có thể dùng Playwright Chromium đã cài hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` tới Chrome/Edge hệ thống. Output nằm trong `artifacts/phase02` và bị Git ignore.

@@ -1,79 +1,202 @@
-import { ArrowRight, CirclePause, Radio, Users } from "lucide-react";
-import { AppShell } from "../components/app-shell";
-import { GlassCard } from "../components/glass-card";
-import { Button } from "../components/ui/button";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  CirclePause,
+  Gamepad2,
+  LayoutDashboard,
+  MoreHorizontal,
+  Radio,
+  Settings2,
+  Users,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { CelestialBackground } from "../components/celestial-background";
+import { Brand } from "../components/brand";
+import { ConnectionIndicator } from "../components/connection-indicator";
+import { CountdownTimer } from "../components/countdown-timer";
+import { GlassBadge } from "../components/glass-badge";
+import { GlassButton } from "../components/glass-button";
+import { mockPlayers, mockRound } from "../data/mock-data";
+
+const navigation = [
+  { label: "Tổng quan", icon: LayoutDashboard, active: true },
+  { label: "Người chơi", icon: Users },
+  { label: "Các vòng", icon: Gamepad2 },
+  { label: "Kết quả", icon: BarChart3 },
+  { label: "Cài đặt", icon: Settings2 },
+];
 
 export function AdminPage({ sessionCode }: { sessionCode: string }) {
+  const progress = Math.round((mockRound.submitted / mockRound.players) * 100);
   return (
-    <AppShell
-      action={
-        <span className="status-pill">
-          <Radio size={13} /> Trực tiếp · {sessionCode}
-        </span>
-      }
-    >
-      <section className="py-8 sm:py-12">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <span className="eyebrow">Bảng điều phối</span>
-            <h1 className="mt-3 text-4xl font-black tracking-[-.045em] text-violet-950">
-              Chào buổi tiệc 👋
-            </h1>
-            <p className="mt-2 text-violet-950/55">
-              Mọi thứ đang chạy mượt. Vòng 1 đang nhận meme.
-            </p>
+    <main className="admin-canvas">
+      <CelestialBackground />
+      <div className="admin-layout">
+        <aside className="admin-sidebar">
+          <Brand />
+          <nav aria-label="Điều hướng quản trị" className="admin-nav space-y-1">
+            {navigation.map(({ label, icon: Icon, active }) => (
+              <a key={label} aria-current={active ? "page" : undefined} href="#">
+                <Icon aria-hidden="true" size={16} /> {label}
+              </a>
+            ))}
+          </nav>
+          <div className="admin-room">
+            <span>Mã phòng</span>
+            <strong>{sessionCode}</strong>
+            <small className="mt-1 block text-[.66rem] text-[var(--ink-muted)]">
+              28 người đã tham gia
+            </small>
           </div>
-          <div className="flex gap-2">
-            <Button variant="glass">
-              <CirclePause size={17} /> Tạm dừng
-            </Button>
-            <Button>
-              Chuyển tiết lộ <ArrowRight size={17} />
-            </Button>
-          </div>
-        </div>
-        <div className="mt-8 grid gap-5 lg:grid-cols-[1.45fr_.55fr]">
-          <GlassCard className="p-5 sm:p-7">
-            <div className="flex items-start justify-between gap-4">
+        </aside>
+
+        <section className="admin-main">
+          <header className="admin-topbar">
+            <div className="lg:hidden">
+              <Brand compact />
+            </div>
+            <div className="hidden lg:block">
+              <span className="block text-[.65rem] font-bold text-[var(--ink-muted)]">
+                CREATIVE CONTROL STUDIO
+              </span>
+              <strong className="text-sm text-[var(--midnight)]">MisThy Meme Party</strong>
+            </div>
+            <div className="flex items-center gap-2">
+              <ConnectionIndicator label="Trực tiếp" />
+              <GlassButton aria-label="Thêm tùy chọn" size="icon" variant="ghost">
+                <MoreHorizontal aria-hidden="true" size={18} />
+              </GlassButton>
+            </div>
+          </header>
+
+          <div className="admin-content">
+            <div className="admin-heading">
               <div>
-                <span className="text-xs font-extrabold uppercase tracking-[.18em] text-fuchsia-600">
-                  Đang diễn ra
-                </span>
-                <h2 className="mt-3 text-2xl font-extrabold text-violet-950">
-                  Khi admin bảo “chương trình hôm nay đơn giản lắm”...
-                </h2>
+                <GlassBadge tone="violet">Bảng điều phối</GlassBadge>
+                <h1>Chào buổi tiệc</h1>
+                <p>Vòng {mockRound.number} đang nhận meme · mọi hệ thống ổn định</p>
               </div>
-              <div className="countdown">24</div>
+              <div className="admin-actions">
+                <GlassButton variant="glass">
+                  <CirclePause aria-hidden="true" size={16} /> Tạm dừng
+                </GlassButton>
+                <GlassButton>
+                  Chuyển tiết lộ <ArrowRight aria-hidden="true" size={16} />
+                </GlassButton>
+              </div>
             </div>
-            <div className="mt-8 h-3 overflow-hidden rounded-full bg-violet-100">
-              <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+
+            <div className="admin-summary" aria-label="Tóm tắt phiên chơi">
+              <Summary
+                icon={<Users size={15} />}
+                label="Người chơi"
+                value={`${mockRound.players} · 27 online`}
+              />
+              <Summary
+                icon={<Activity size={15} />}
+                label="Meme đã gửi"
+                value={`${mockRound.submitted} · ${progress}%`}
+              />
+              <Summary icon={<Gamepad2 size={15} />} label="Chế độ" value="Cộng đồng" />
+              <Summary icon={<Radio size={15} />} label="Màn hình" value="Đang trình chiếu" />
             </div>
-            <div className="mt-3 flex justify-between text-sm text-violet-950/55">
-              <span>21 meme đã gửi</span>
-              <span>75%</span>
+
+            <div className="control-workspace">
+              <div className="space-y-3">
+                <section className="control-panel">
+                  <div className="round-control-head">
+                    <div>
+                      <GlassBadge tone="danger">Đang diễn ra</GlassBadge>
+                      <h2 className="round-question">{mockRound.prompt}</h2>
+                    </div>
+                    <CountdownTimer seconds={mockRound.secondsLeft} />
+                  </div>
+                  <div className="compact-progress">
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="panel-meta">
+                    <span>{mockRound.submitted} meme đã gửi</span>
+                    <span>{progress}% hoàn thành</span>
+                  </div>
+                </section>
+
+                <section className="control-panel">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2>Người chơi gần đây</h2>
+                      <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                        Trạng thái gửi trong vòng hiện tại
+                      </p>
+                    </div>
+                    <GlassButton size="small" variant="ghost">
+                      Xem tất cả
+                    </GlassButton>
+                  </div>
+                  <div className="player-list">
+                    {mockPlayers.map((player, index) => (
+                      <div className="player-row" key={player.name}>
+                        <span className="player-avatar">{player.initials}</span>
+                        <div>
+                          <strong>{player.name}</strong>
+                          <small>{player.status}</small>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ConnectionIndicator connected={player.connected} compact />
+                          <span className="text-xs font-black text-[var(--periwinkle-700)]">
+                            #{index + 1}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="space-y-3">
+                <section className="control-panel">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-[var(--ink-muted)]">
+                        Tiến độ chương trình
+                      </span>
+                      <h2 className="mt-1">Vòng 1 / 5</h2>
+                    </div>
+                    <strong className="text-xl text-[var(--periwinkle-700)]">20%</strong>
+                  </div>
+                  <div className="round-track">
+                    {[1, 2, 3, 4, 5].map((round) => (
+                      <span className={round === 1 ? "active" : undefined} key={round} />
+                    ))}
+                  </div>
+                </section>
+                <section className="control-panel preview-strip">
+                  <div className="flex items-center justify-between">
+                    <h2>Preview màn hình</h2>
+                    <GlassBadge tone="success">Live</GlassBadge>
+                  </div>
+                  <div className="preview-frame">
+                    <small>Vòng 1 · chọn meme</small>
+                    <p>{mockRound.prompt}</p>
+                  </div>
+                </section>
+              </div>
             </div>
-          </GlassCard>
-          <GlassCard className="p-5 sm:p-7">
-            <Users className="text-fuchsia-600" />
-            <span className="mt-6 block text-5xl font-black tracking-[-.06em] text-violet-950">
-              28
-            </span>
-            <span className="text-sm text-violet-950/55">người chơi · 27 online</span>
-          </GlassCard>
-        </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-3">
-          {[
-            ["Chế độ", "Cộng đồng"],
-            ["Vòng hiện tại", "1 / 5"],
-            ["Trạng thái", "Đang nhận meme"],
-          ].map(([label, value]) => (
-            <GlassCard key={label} className="p-5">
-              <span className="text-sm text-violet-950/50">{label}</span>
-              <strong className="mt-2 block text-xl text-violet-950">{value}</strong>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
-    </AppShell>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function Summary({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="summary-item">
+      <span className="summary-icon">{icon}</span>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+    </div>
   );
 }

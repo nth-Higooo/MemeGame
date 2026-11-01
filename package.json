@@ -19,6 +19,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --if-present test",
     "test:e2e": "playwright test",
+    "visual:check": "node scripts/visual-check.mjs",
     "cf:typegen": "pnpm --filter @misthy/worker cf:typegen",
     "db:migrate:local": "pnpm --filter @misthy/worker db:migrate:local",
     "db:migrate:remote": "pnpm --filter @misthy/worker db:migrate:remote"

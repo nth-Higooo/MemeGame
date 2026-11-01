@@ -1,15 +1,26 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 import { cn } from "../lib/utils";
 
-export function GlassCard({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[2rem] border border-white/65 bg-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,.95),0_20px_65px_rgba(75,55,110,.13)] backdrop-blur-2xl",
-        "after:pointer-events-none after:absolute after:inset-x-10 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-white after:to-transparent",
-        className,
-      )}
-      {...props}
-    />
-  );
+const cardVariants = cva("surface-card relative overflow-hidden", {
+  variants: {
+    variant: {
+      regular: "surface-frosted",
+      subtle: "surface-soft",
+      solid: "surface-solid",
+      clear: "surface-clear",
+    },
+    radius: {
+      medium: "rounded-[var(--radius-md)]",
+      large: "rounded-[var(--radius-lg)]",
+      xlarge: "rounded-[var(--radius-xl)]",
+    },
+  },
+  defaultVariants: { variant: "regular", radius: "large" },
+});
+
+type GlassCardProps = HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardVariants>;
+
+export function GlassCard({ className, variant, radius, ...props }: GlassCardProps) {
+  return <div className={cn(cardVariants({ variant, radius }), className)} {...props} />;
 }

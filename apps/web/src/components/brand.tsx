@@ -1,21 +1,20 @@
-import { Sparkles } from "lucide-react";
 import { getMessages } from "../i18n";
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   const { brand } = getMessages();
   return (
     <a className="inline-flex items-center gap-3" href="/" aria-label={brand.homeLabel}>
-      <span className="grid size-11 rotate-[-5deg] place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-300/35">
-        <Sparkles aria-hidden="true" size={21} />
+      <span className="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 44 44">
+          <path d="M22 5c.6 8.8 4.2 12.4 13 13-8.8.6-12.4 4.2-13 13-.6-8.8-4.2-12.4-13-13 8.8-.6 12.4-4.2 13-13Z" />
+          <circle cx="34.5" cy="8.5" r="2.5" />
+          <circle cx="9" cy="33" r="2" />
+        </svg>
       </span>
       {!compact && (
         <span className="leading-none">
-          <strong className="block text-[1.05rem] font-extrabold tracking-[-0.035em] text-violet-950">
-            {brand.name}
-          </strong>
-          <span className="mt-1 block text-[.7rem] font-bold uppercase tracking-[.25em] text-fuchsia-600">
-            {brand.suffix}
-          </span>
+          <strong className="brand-name">{brand.name}</strong>
+          <span className="brand-suffix">{brand.suffix}</span>
         </span>
       )}
     </a>

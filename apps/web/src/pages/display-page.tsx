@@ -1,45 +1,66 @@
-import { Users } from "lucide-react";
-import { AppShell } from "../components/app-shell";
-import { GlassCard } from "../components/glass-card";
+import { CelestialBackground } from "../components/celestial-background";
+import { Brand } from "../components/brand";
+import { CountdownTimer } from "../components/countdown-timer";
+import { MemeCard } from "../components/meme-card";
+import { mockMemes, mockRound } from "../data/mock-data";
 
 export function DisplayPage({ sessionCode }: { sessionCode: string }) {
+  const progress = Math.round((mockRound.submitted / mockRound.players) * 100);
   return (
-    <AppShell
-      action={
+    <main className="stage-shell">
+      <CelestialBackground tone="stage" />
+      <header className="stage-header">
+        <Brand />
         <div className="flex items-center gap-3">
-          <span className="status-pill">
-            <Users size={14} /> 28 người chơi
+          <span className="text-xs font-bold text-[#c9cde5] sm:text-sm">
+            {mockRound.players} người chơi
           </span>
-          <strong className="rounded-full bg-violet-800 px-4 py-2 text-sm text-white">
-            {sessionCode}
-          </strong>
+          <span className="stage-code">{sessionCode}</span>
         </div>
-      }
-    >
-      <section className="flex min-h-[calc(100dvh-6rem)] flex-col items-center justify-center py-10 text-center">
-        <span className="eyebrow">Vòng 1 · Đang gửi meme</span>
-        <h1 className="mt-7 max-w-5xl text-balance text-5xl font-black leading-[1.02] tracking-[-.055em] text-violet-950 md:text-7xl xl:text-8xl">
-          Khi admin bảo “chương trình hôm nay đơn giản lắm”...
-        </h1>
-        <div className="mt-12 grid w-full max-w-5xl items-center gap-6 md:grid-cols-[1fr_auto]">
-          <GlassCard className="p-4 text-left">
-            <div className="flex items-center gap-4 rounded-[1.4rem] bg-white/42 p-4">
-              <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-pink-300 to-violet-300 text-2xl">
-                ✨
-              </span>
-              <div>
-                <strong className="block text-lg text-violet-950">Đã nhận 21 / 28 meme</strong>
-                <span className="text-sm text-violet-950/55">
-                  Vẫn còn thời gian để tung cú chốt
-                </span>
+      </header>
+
+      <section className="stage-layout">
+        <div>
+          <div className="stage-kicker">Vòng {mockRound.number} · Hãy chọn cú chốt</div>
+          <h1 className="stage-title">{mockRound.prompt}</h1>
+          <div className="stage-progress">
+            <div className="stage-progress-row">
+              <div className="stage-count">
+                <span>Đã nhận meme</span>
+                <strong>
+                  {mockRound.submitted} <span>/ {mockRound.players}</span>
+                </strong>
               </div>
+              <CountdownTimer seconds={mockRound.secondsLeft} size="stage" dark />
             </div>
-          </GlassCard>
-          <div className="countdown countdown-large" aria-label="Còn 24 giây">
-            24
+            <div className="stage-bar" aria-label={`${progress}% người chơi đã gửi meme`}>
+              <span style={{ width: `${progress}%` }} />
+            </div>
+            <p className="stage-note">
+              Mỗi lựa chọn đã gửi đều được giữ an toàn · còn{" "}
+              {mockRound.players - mockRound.submitted} người đang chọn
+            </p>
           </div>
         </div>
+
+        <div className="stage-memes" aria-label="Các meme đã gửi ẩn danh">
+          {mockMemes.slice(0, 4).map((meme, index) => (
+            <MemeCard
+              key={meme.id}
+              aria-label={`Meme ẩn danh số ${index + 1}`}
+              className="pointer-events-none"
+              compact
+              anonymous
+              meme={meme}
+            />
+          ))}
+        </div>
       </section>
-    </AppShell>
+
+      <footer className="stage-footer">
+        <span>MisThy Meme Party</span>
+        <span>Chọn meme · Chốt khoảnh khắc</span>
+      </footer>
+    </main>
   );
 }
