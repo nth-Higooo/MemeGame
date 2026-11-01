@@ -1,0 +1,25 @@
+{
+  "name": "misthy-meme-party",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @misthy/shared build && pnpm --filter @misthy/web build && pnpm --filter @misthy/worker build",
+    "dev": "pnpm --parallel --filter @misthy/web --filter @misthy/worker dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "playwright test",
+    "cf:typegen": "pnpm --filter @misthy/worker cf:typegen",
+    "db:migrate:local": "pnpm --filter @misthy/worker db:migrate:local",
+    "db:migrate:remote": "pnpm --filter @misthy/worker db:migrate:remote"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@playwright/test": "1.56.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Avenir Next", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --color-cream-50: #fffaf3;
+}
+
+:root { color: #241438; background: #f7f2ff; font-synthesis: none; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; min-height: 100dvh; background: radial-gradient(circle at 8% 8%, #fff4dc 0, transparent 28%), radial-gradient(circle at 90% 20%, #f5dfff 0, transparent 32%), linear-gradient(145deg, #fffaf4, #f8f3ff 52%, #effcf6); }
+button, input { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+.ambient { position: fixed; width: 40rem; aspect-ratio: 1; border-radius: 999px; filter: blur(3px); opacity: .38; pointer-events: none; }
+.ambient-one { top: -24rem; right: -12rem; background: radial-gradient(circle, #d9b8ff, transparent 68%); }
+.ambient-two { bottom: -27rem; left: -12rem; background: radial-gradient(circle, #ffc7d9, transparent 68%); }
+.gradient-text { color: transparent; background: linear-gradient(110deg, #7149c6 8%, #d64d9a 52%, #ee8a63); background-clip: text; -webkit-background-clip: text; }
+.eyebrow { display: inline-flex; align-items: center; border: 1px solid rgba(255,255,255,.8); border-radius: 999px; background: rgba(255,255,255,.5); padding: .45rem .8rem; color: #7c3da0; font-size: .7rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; box-shadow: inset 0 1px rgba(255,255,255,.9); }
+.status-pill { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid rgba(255,255,255,.72); border-radius: 999px; background: rgba(255,255,255,.52); padding: .5rem .75rem; color: rgba(47,25,76,.72); font-size: .75rem; font-weight: 700; }
+.status-pill i { width: .45rem; height: .45rem; border-radius: 999px; background: #38b77b; box-shadow: 0 0 0 4px rgba(56,183,123,.12); }
+.meme-preview { display: flex; flex-direction: column; position: relative; overflow: hidden; background: linear-gradient(165deg, rgba(49,24,76,.05), rgba(49,24,76,.58)), radial-gradient(circle at 70% 20%, #ffc0db, transparent 28%), linear-gradient(135deg, #aa8de5, #f39ab5 48%, #efb77f); box-shadow: inset 0 1px rgba(255,255,255,.6); }
+.meme-preview::before { content: "✦"; position: absolute; right: 12%; top: 15%; color: rgba(255,255,255,.72); font-size: clamp(5rem, 12vw, 9rem); transform: rotate(12deg); text-shadow: -4rem 8rem 0 rgba(255,255,255,.16); }
+.reaction { border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: rgba(20,10,35,.2); padding: .45rem .7rem; color: white; font-size: .75rem; font-weight: 700; backdrop-filter: blur(12px); }
+.countdown { display: grid; flex: 0 0 auto; width: 4rem; aspect-ratio: 1; place-items: center; border: 1px solid rgba(255,255,255,.75); border-radius: 999px; background: linear-gradient(145deg, rgba(255,255,255,.8), rgba(255,255,255,.35)); color: #7338a1; font-size: 1.35rem; font-weight: 900; box-shadow: inset 0 1px white, 0 10px 30px rgba(95,55,135,.12); }
+.countdown-large { width: clamp(6rem, 10vw, 8rem); font-size: clamp(2rem, 4vw, 3rem); }
+.meme-tile { position: relative; display: flex; min-height: 9.5rem; flex-direction: column; align-items: center; justify-content: center; gap: .7rem; overflow: hidden; border: 1px solid rgba(255,255,255,.75); border-radius: 1.5rem; background: linear-gradient(145deg, rgba(255,255,255,.67), rgba(255,255,255,.3)); box-shadow: inset 0 1px white, 0 10px 28px rgba(75,48,105,.08); color: #342046; transition: transform .2s ease, background .2s ease; }
+.meme-tile:hover { transform: translateY(-3px); background: rgba(255,255,255,.76); }
+.meme-tile > span { font-size: 2.7rem; }
+.meme-tile > strong { font-size: .82rem; }
+.meme-tile > i { position: absolute; right: .65rem; top: .65rem; display: grid; width: 1.7rem; aspect-ratio: 1; place-items: center; border-radius: 999px; background: #7444b6; color: white; }
+
+@media (max-width: 520px) { .status-pill { padding-inline: .6rem; } nav strong { font-size: .95rem !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
