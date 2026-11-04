@@ -19,8 +19,8 @@ test("home exposes all three interfaces", async ({ page }) => {
 
 test("player shell is usable on mobile", async ({ page }) => {
   await page.goto("/play/MT2026");
-  await expect(page.getByRole("heading", { name: "Chọn cú chốt của bạn" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chốt meme này" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tham gia phòng" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Xác nhận tham gia" })).toBeVisible();
 });
 
 test("display and admin shells resolve session routes", async ({ page }) => {

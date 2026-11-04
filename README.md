@@ -68,3 +68,16 @@ Các route demo trong Phase 01 là UI shell bằng dữ liệu mẫu. Xem [tiế
 ## Content storage
 
 Phase 03 stores structured content in D1 and image bytes in private R2. The default upload cap is 10 MiB (`MAX_UPLOAD_BYTES`). JSON export contains questions and presets, not image binaries. See [database](docs/database.md) and [deployment](docs/deployment.md).
+
+## Realtime engine
+
+Phase 04 provides session creation, join/reconnect, role tickets, and a hibernating WebSocket engine. Phase 05 connects `/play/:sessionCode` to that engine; Admin/Display gameplay workflows remain shells. Apply all migrations before using the API:
+
+```bash
+pnpm db:migrate:local
+pnpm dev
+```
+
+The Worker exposes `POST /api/admin/sessions`, `POST /api/sessions/:code/join`, reconnect/display ticket endpoints, and `/ws/:code`. WebSockets use subprotocols returned by the ticket APIs. See [realtime engine](docs/realtime-engine.md) for contracts, timing, and recovery behavior.
+
+Create a content pack in Content Studio, then create a session with the authenticated API. Open `/play/<returned-code>` to join. The room must be in `LOBBY` for a new player; returning players reconnect automatically. See [player experience](docs/player-experience.md) for the flow and exact real-backend E2E commands (`pnpm test:player`).

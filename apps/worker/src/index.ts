@@ -4,21 +4,25 @@ import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
 import { adminApi } from "./admin-api";
 import { GameSession } from "./game-session";
+import { verifyConnectionTicket } from "./realtime-auth";
+import { sessionApi } from "./session-api";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use(
-  "*",
-  secureHeaders({
-    contentSecurityPolicy: {
-      defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "wss:"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-    },
-    strictTransportSecurity: "max-age=31536000; includeSubDomains",
-  }),
-);
+const securityHeaders = secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    connectSrc: ["'self'", "wss:"],
+    imgSrc: ["'self'", "data:", "blob:"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+  },
+  strictTransportSecurity: "max-age=31536000; includeSubDomains",
+});
+
+app.use("*", async (c, next) => {
+  if (c.req.header("Upgrade")?.toLowerCase() === "websocket") return next();
+  return securityHeaders(c, next);
+});
 
 app.get("/api/health", (c) =>
   c.json({
@@ -29,12 +33,23 @@ app.get("/api/health", (c) =>
 );
 
 app.route("/api/admin", adminApi);
+app.route("/api/sessions", sessionApi);
 
 app.get("/ws/:sessionCode", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));
   if (!code.success) return c.json({ error: "invalid_session_code" }, 400);
   if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
     return c.json({ error: "upgrade_required" }, 426);
+  }
+  const protocols = (c.req.header("Sec-WebSocket-Protocol") ?? "")
+    .split(",")
+    .map((value) => value.trim());
+  const ticketToken = protocols.find((value) => value !== "misthy-v1");
+  const ticket = ticketToken
+    ? await verifyConnectionTicket(ticketToken, c.env.ADMIN_SESSION_SECRET)
+    : null;
+  if (!protocols.includes("misthy-v1") || !ticket || ticket.sessionCode !== code.data) {
+    return c.json({ error: "invalid_connection_ticket" }, 401);
   }
 
   const id = c.env.GAME_SESSIONS.idFromName(code.data);

@@ -1,6 +1,6 @@
 # Tiến độ
 
-Cập nhật: 2026-11-01 (Asia/Bangkok)
+Cập nhật: 2026-11-04 (Asia/Bangkok)
 
 ## Phase 01 — Foundation
 
@@ -73,20 +73,19 @@ Verification redesign:
 
 ## Phase tiếp theo
 
-Phase 04 starts in a separate development session:
+Phase 06 starts in a separate development session:
 
-- API tạo session; player join, reconnect token và lobby presence.
-- Kết nối UI vào WebSocket thật, client clock offset, reconnect backoff và state store.
+- Kết nối Display/Admin UI vào API và WebSocket thật; player integration is complete in Phase 05.
 - Chuyển copy chi tiết còn lại vào locale catalog trước khi thêm ngôn ngữ thứ hai.
 
 ## Known issues / quyết định cần chốt
 
 - `wrangler.jsonc` dùng UUID rỗng hợp lệ làm placeholder D1 database ID; phải thay khi tạo tài nguyên production.
-- UI Phase 02 chỉ dùng mock data; không có backend gameplay, voting hoặc scoring.
+- Player uses the live engine as of Phase 05; Display/Admin gameplay shells still use mock data.
 - Rotate or remove `ADMIN_BOOTSTRAP_PASSWORD` after the first production owner is created.
-- Cần xác nhận công thức điểm trước Phase 05.
+- Preset quyết định winner/participation points; cần product review trước production event.
 - Chưa dùng asset MisThy thật; mock meme dùng abstract pastel art/emoji để tránh quyền hình ảnh chưa rõ.
-- Playwright WebKit browser bundle chưa cài; visual QA và Chromium E2E dùng Chrome hệ thống qua `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+- WebKit is installed for Phase 05 browser testing; physical mobile devices remain unverified.
 
 ## Phase 03 — Database and Content Management
 
@@ -114,4 +113,60 @@ Known limitations:
 - JSON export excludes R2 binaries; referenced destination assets must already exist.
 - Team mode is reserved but rejected; individual mode is implemented first.
 - The CMS does not transcode media; curators upload web-ready originals.
-- Join/reconnect, the round engine, voting, and score execution remain future phases.
+- Phase 03 itself did not include gameplay; the later Phase 04 section records the completed engine.
+
+## Phase 04 — Realtime Game Engine
+
+Status: **complete**.
+
+- Added the exact `LOBBY → QUESTION → SUBMITTING → REVEAL → VOTING → RESULT → LEADERBOARD → FINISHED` server-authoritative graph as a transport-independent reducer.
+- Added shared Zod contracts for Player/Display/Admin/Judge roles, versioned snapshots, signed connection identity, structured commands, acknowledgements, errors, and persisted state.
+- Added authenticated session creation, public lobby join, hashed reconnect tokens, display tickets, and protected Admin/Judge ticket issuance.
+- Replaced the placeholder socket shell with native Durable Object WebSocket Hibernation, serialized attachments, role-aware projections, fresh reconnect snapshots, connection presence derived across multiple tabs, and isolated objects by session code.
+- Added absolute server deadlines and one DO alarm per timed phase. No timer ticks, `setInterval`, or frequent countdown broadcasts are used.
+- Added idempotent submission/vote/finalization commands, server deadline enforcement, voter eligibility snapshots, self-vote prevention, deterministic equal/zero-vote handling, and empty-round behavior.
+- Added admin pause/resume/skip/restart/reset plus Talent selection and Community voting/scoring.
+- Added D1 migration `0003_realtime_engine.sql`, versioned D1/DO snapshots, canonical submission/vote command IDs, round winners, score events, and command audit history.
+- Added recovery from a higher-version D1 snapshot after a partial DO write and alarm-safe repeated deadline processing.
+- Documented the engine, timing, identity, projection, tie-break, persistence, and recovery model in `docs/realtime-engine.md` and `docs/game-rules.md`.
+
+Verification:
+
+- Prettier, ESLint, and strict TypeScript checks pass.
+- Vitest passes 25 tests: 8 shared-contract, 8 engine, and 9 Worker tests.
+- Migration `0003_realtime_engine.sql` applies locally with 21 commands.
+- Vite production build and Wrangler deployment dry-run pass with Assets, D1, R2, and the `GameSession` Durable Object binding.
+- Local Wrangler smoke test passes bootstrap/login, session creation, player join, Player/Display/Admin ticket issuance, hibernating WebSocket upgrade, role snapshot, Admin `START`, command ACK, state broadcast, and alarm transition from `QUESTION` to `SUBMITTING` with a future absolute deadline.
+
+Known limitations:
+
+- Phase 04 deliberately exposes APIs/contracts only; the role UIs are not connected yet.
+- Display tickets are available to anyone who knows an active session code; they are read-only and short-lived.
+- Reconnect tokens are bearer credentials returned once. Production clients must store them carefully and never log them.
+- Team play remains out of scope; engine scoring is individual.
+
+## Phase 05 — Player Experience
+
+Status: **complete**.
+
+- Replaced the player mock gallery with real room validation, anonymous join, nickname confirmation, and persistent reconnect identity.
+- Added real lobby, question, submission selection/replacement, reveal, Community voting, result, leaderboard, and final participation screens.
+- Added a validated WebSocket client with exponential reconnect, fresh tickets, bounded request/handshake waits, heartbeat health, server clock offset, version-aware snapshots, and idempotent retry of pending commands.
+- Added own-submission identity and voter eligibility fields to player projections without exposing hidden authors or early vote counts.
+- Added deadline-safe `REPLACE_MEME` and D1 upsert preserving the submission identity; normal duplicate submissions and all duplicate votes remain rejected.
+- Serialized complete DO mutations around D1 awaits for multiple-tab correctness.
+- Added phase-scoped bearer-authenticated asset metadata/media endpoints and database-derived personal participation counts. R2 remains private.
+- Added near-viewport GIF loading, blob URL cleanup, reduced-motion opt-in playback, search/tags, preview/confirmation dialogs, and paused/expired/loading/error/disconnected states.
+- Moved player copy into the Vietnamese locale catalog and documented the client protocol in `docs/player-experience.md`.
+- Added real-backend Playwright tests covering both game modes, refresh, reconnect, multiple tabs, replacement, self-vote blocking, locked vote, results, final totals, automatic deadline expiry, room validation, and protected media.
+
+Verification and remaining scope:
+
+- Strict typecheck, ESLint, and formatting checks pass; Vitest passes 26 tests (8 shared, 9 engine, 9 Worker).
+- Real-backend player E2E passes 8/8 on Android Chrome and iPhone WebKit; existing shell journeys pass 9/9 across mobile Chrome, mobile Safari, and desktop Chrome.
+- All three migrations apply to the isolated E2E database. Vite production build and Wrangler dry-run pass. Vite reports a 509 kB main-chunk size advisory; route splitting remains a later optimization.
+- Android Chrome and iPhone WebKit journeys run against an isolated local D1/R2/DO instance; screenshot inspection includes a 320 px player gallery.
+- No new D1 migration is needed; existing submission uniqueness is retained.
+- Frontend Admin/Display live workflows remain for later phases.
+- Restoring identity requires browser storage; clearing site data loses the anonymous participant credential.
+- Physical iOS/Android device testing and a production deployment are not performed in this phase.

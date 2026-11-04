@@ -2,35 +2,52 @@
 
 ## Vòng đời phiên
 
-`LOBBY → PROMPT → SUBMITTING → REVEAL → (VOTING) → RESULT → PROMPT/FINISHED`.
+`LOBBY → QUESTION → SUBMITTING → REVEAL → (VOTING) → RESULT → LEADERBOARD → QUESTION/FINISHED`.
 
-Admin có thể chuyển sang `PAUSED`; server ghi phase trước đó và thời gian còn lại để resume. Client không tự chuyển phase khi đồng hồ về 0.
+Community Mode có phase `VOTING`; Talent Mode chờ Admin/Judge chọn winner tại `REVEAL`. Client không tự chuyển phase khi đồng hồ về 0. Pause giữ nguyên phase hiện tại và lưu thời gian còn lại thay vì tạo thêm một phase ngoài state machine.
 
 ## Gửi meme
 
-- Chỉ player đã join và còn hợp lệ trong vòng được submit khi phase là `SUBMITTING`.
-- Mỗi player có tối đa một submission/vòng. MVP coi lần submit đầu đã xác nhận là cuối cùng; cho phép thay đổi có thể thêm qua cấu hình sau.
-- Submission đến sau deadline server bị từ chối, kể cả UI vẫn đang đếm do lệch đồng hồ.
-- Reveal ẩn danh và thứ tự được server shuffle ổn định cho cả client.
+- Chỉ player đã join trước khi game bắt đầu được submit trong `SUBMITTING`.
+- Mỗi player tối đa một submission/vòng. `SUBMIT_MEME` tạo lựa chọn đầu tiên; `REPLACE_MEME` đổi meme trước deadline và giữ submission ID. Lặp lại cùng `commandId` được ACK idempotent; gửi lại `SUBMIT_MEME` với ID mới bị từ chối là duplicate.
+- Server kiểm tra meme thuộc collection của câu hỏi và thời điểm nhận nhỏ hơn deadline tuyệt đối.
+- Submission đến đúng hoặc sau deadline bị từ chối, kể cả UI vẫn còn đếm do lệch đồng hồ.
+- Reveal ẩn danh cho Player/Display; Admin/Judge có projection theo quyền và danh tính chỉ công khai khi kết quả xuất hiện.
 
-## TALENT_MODE
+## Talent Mode
 
-Sau reveal, talent chọn một submission. Admin có thể ghi quyết định nếu không có judge UI. Server kiểm tra submission thuộc vòng hiện tại, lưu audit event, tính điểm và chuyển `RESULT`. Audience không vote.
+Sau reveal, Admin hoặc Judge chọn một submission thuộc vòng hiện tại. Có thể chọn `null` cho vòng trống/skip. Server lưu winner, score events và chuyển sang `RESULT`. Audience không vote.
 
-## COMMUNITY_MODE
+## Community Mode
 
-- Chỉ player thuộc danh sách voter eligibility snapshot lúc mở `VOTING` được vote.
-- Player không được vote submission của chính mình.
-- Mỗi voter có một vote; unique constraint và command idempotency chống gửi lặp.
+- Eligibility được snapshot khi đóng submission; disconnect không làm mất quyền vote hoặc dữ liệu đã gửi.
+- Mỗi voter một vote và không được vote submission của mình.
+- Deadline voting do server/DO alarm chốt.
 - Winner là submission có nhiều vote hợp lệ nhất.
-- Nếu hòa, server chọn submission được gửi sớm hơn. Đây là tie-break deterministic, dễ giải thích và audit; có thể đổi bằng cấu hình trước sự kiện.
+- `EARLIEST_SUBMISSION` chọn lựa chọn cuối được gửi đến server sớm nhất khi hòa (thay meme cập nhật thời điểm này), sau đó dùng UUID để ổn định tuyệt đối.
+- `RANDOM` dùng lựa chọn deterministic từ round ID và candidate IDs, nên recovery cho cùng kết quả.
+- `TALENT_DECIDES` đưa tie về reveal không deadline để Admin/Judge quyết định.
+- Không có submission thì winner `null`. Không có vote thì mọi submission hòa và áp dụng tie-breaker đã cấu hình.
 
 ## Điểm
 
-MVP đề xuất winner nhận 100 điểm, các player khác 0 điểm/vòng. Cách tính cuối cùng sẽ được xác nhận trước Phase 05 và cấu hình server-side.
+Điểm winner và participation lấy từ preset. Finalization chỉ chạy một lần, ghi `score_events` và cập nhật player score trong cùng D1 batch. Restart round xóa event của vòng và hoàn điểm; reset session xóa lịch sử vòng đang vận hành và đưa mọi điểm về 0.
 
-## Trường hợp lỗi
+## Quyền điều khiển
 
-- Player mất mạng: giữ submission/vote đã xác nhận; reconnect bằng token và nhận state mới.
-- Admin mất mạng: vòng vẫn theo alarm server; admin mới đăng nhập nhận snapshot.
-- Phase sai: admin pause, xem audit/checkpoint, dùng retry hoặc restore. Không chỉnh trực tiếp D1 trong lúc sự kiện đang chạy.
+- Player: submit, vote, ping/ready.
+- Display: chỉ nhận snapshot.
+- Judge: chọn winner khi hợp lệ.
+- Admin: start, advance, pause, resume, skip, restart round, reset session và chọn winner.
+
+Mọi command sai role, phase hoặc deadline đều bị từ chối mà không tăng version.
+
+## Kết nối và lỗi
+
+- Player reconnect bằng token bí mật đã hash trong D1 và nhận snapshot mới.
+- Admin/Display/Judge lấy connection ticket mới rồi reconnect; socket cũ không phải nguồn sự thật.
+- Nhiều tab của một player dùng chung identity. Player chỉ offline khi tab cuối ngắt.
+- Hibernation giữ WebSocket và attachment; engine khôi phục snapshot từ DO storage/D1.
+- Alarm và finalization có thể được gọi lặp nhưng guard version/deadline/command ngăn kết quả hoặc điểm trùng.
+
+Xem [realtime-engine.md](realtime-engine.md) để biết event contract, timing và recovery chi tiết.

@@ -39,3 +39,11 @@ Shared contract và Worker health/404 routes có unit test. Smoke test local dù
 ## Phase 03 content checks
 
 Vitest covers shared Zod defaults/import rejection, image magic-byte detection, upload-limit parsing, PBKDF2 verification, and signed-session tamper rejection. Apply both migrations to a disposable local Wrangler D1 database before release. Manual CMS smoke testing covers bootstrap/login, animated GIF preview, upload, filters, archive safety, question reorder, both preset modes, export, and each duplicate import strategy.
+
+## Phase 04 engine checks
+
+Reducer tests cover the full phase graph, authoritative deadlines, empty rounds, zero-vote/equal-vote resolution, late and duplicate submissions, self/duplicate votes, Talent authorization, repeated finalization, pause/resume, restart/reset, reconnect identity, and late joins. Worker tests cover signed connection-ticket tamper resistance. Apply all three migrations locally and run a Wrangler dry-run so Durable Object/alarm/WebSocket types are bundled against the selected compatibility date.
+
+## Phase 05 player journeys
+
+`pnpm test:player` uses `playwright.player.config.ts` with Android Chrome and iPhone WebKit projects against a real local Worker and isolated `.wrangler/player-e2e` database. The suite provisions its content through secure CMS APIs; no game mocks or route interception are used. See [player-experience.md](player-experience.md) for database preparation. Original tiny GIF fixtures contain no third-party assets. Coverage includes both modes, join/restore, multiple tabs/reconnect, replacement, protected media, own-vote prevention, vote lock, result/summary, automatic timeout, and invalid rooms. Browser engine emulation does not replace physical-device testing.
