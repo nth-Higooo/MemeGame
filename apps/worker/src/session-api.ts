@@ -10,8 +10,41 @@ import { digestText } from "./auth";
 import type { Env } from "./env";
 import { createReconnectToken } from "./realtime-auth";
 import { issueRoleTicket, notifyPlayerJoined } from "./session-service";
+import { verifyConnectionTicket } from "./realtime-auth";
 
 const sessionApi = new Hono<{ Bindings: Env }>();
+
+// A display ticket grants only currently public media, never the meme library.
+sessionApi.get("/:sessionCode/display-media/:assetId", async (c) => {
+  const token = c.req.header("Authorization")?.replace(/^Bearer /, "");
+  const ticket = token ? await verifyConnectionTicket(token, c.env.ADMIN_SESSION_SECRET) : null;
+  if (!ticket || ticket.role !== "DISPLAY" || ticket.sessionCode !== c.req.param("sessionCode"))
+    return c.json({ message: "Kết nối màn hình đã hết hạn." }, 401);
+  const session = await c.env.DB.prepare(
+    "SELECT state_json FROM sessions WHERE id=? AND status!='ARCHIVED'",
+  )
+    .bind(ticket.sessionId)
+    .first<{ state_json: string }>();
+  if (!session) return c.json({ message: "Không tìm thấy phòng." }, 404);
+  const state = persistedGameStateSchema.parse(JSON.parse(session.state_json));
+  const question = state.round ? state.questions[state.round.questionIndex] : null;
+  const id = c.req.param("assetId");
+  const revealed = ["REVEAL", "VOTING", "RESULT", "LEADERBOARD", "FINISHED"].includes(state.phase);
+  const allowed =
+    (state.phase !== "LOBBY" && question?.imageAssetId === id) ||
+    (revealed && state.round?.submissions.some((item) => item.memeAssetId === id));
+  if (!allowed) return c.json({ message: "Ảnh chưa được công bố." }, 403);
+  const asset = await c.env.DB.prepare("SELECT object_key FROM meme_assets WHERE id=?")
+    .bind(id)
+    .first<{ object_key: string | null }>();
+  const object = asset?.object_key ? await c.env.MEME_BUCKET.get(asset.object_key) : null;
+  if (!object) return c.json({ message: "Ảnh chưa sẵn sàng." }, 404);
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("Cache-Control", "private, no-store");
+  headers.set("X-Content-Type-Options", "nosniff");
+  return new Response(object.body, { headers });
+});
 
 sessionApi.get("/:sessionCode", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));

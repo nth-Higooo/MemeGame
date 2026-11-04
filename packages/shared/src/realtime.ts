@@ -87,6 +87,7 @@ export const publicSessionStateSchema = z.object({
   submissions: z.array(publicSubmissionSchema),
   submissionCount: z.number().int().nonnegative(),
   eligibleVoterCount: z.number().int().nonnegative(),
+  votesCast: z.number().int().nonnegative().default(0),
   hasSubmitted: z.boolean(),
   hasVoted: z.boolean(),
   ownSubmissionId: entityIdSchema.nullable(),
@@ -223,6 +224,9 @@ export const playerConnectionSchema = z.object({
   connection: z.object({ url: z.string(), protocols: z.array(z.string()) }),
 });
 export const playerRoomSchema = z.object({ name: z.string(), status: z.string() });
+export const displayConnectionSchema = z.object({
+  connection: z.object({ url: z.string(), protocols: z.array(z.string()) }),
+});
 export const playerAssetSchema = z.object({
   id: entityIdSchema,
   title: z.string(),

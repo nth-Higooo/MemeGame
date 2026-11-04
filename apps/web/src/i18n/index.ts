@@ -1,4 +1,5 @@
 import { playerVi } from "./player-vi";
+import { displayVi } from "./display-vi";
 
 export const supportedLocales = ["vi"] as const;
 export type Locale = (typeof supportedLocales)[number];
@@ -7,6 +8,7 @@ export const defaultLocale: Locale = "vi";
 const catalogs = {
   vi: {
     player: playerVi,
+    display: displayVi,
     brand: { name: "MisThy Meme", suffix: "Party", homeLabel: "MisThy Meme Party — trang chủ" },
     common: { ready: "Sẵn sàng quẩy", session: "Phòng", connected: "Đã kết nối" },
     roles: {

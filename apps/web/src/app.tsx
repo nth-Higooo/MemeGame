@@ -1,10 +1,15 @@
 import { sessionCodeSchema } from "@misthy/shared";
+import { lazy, Suspense } from "react";
+import { getMessages } from "./i18n";
 import { AdminPage } from "./pages/admin-page";
 import { DesignSystemPage } from "./pages/design-system-page";
-import { DisplayPage } from "./pages/display-page";
 import { HomePage } from "./pages/home-page";
 import { PlayPage } from "./pages/play-page";
 import { ContentAdminPage } from "./pages/content-admin-page";
+
+const DisplayPage = lazy(() =>
+  import("./pages/display-page").then((module) => ({ default: module.DisplayPage })),
+);
 
 function resolveRoute(pathname: string) {
   const match = pathname.match(/^\/(play|display|admin)\/([^/]+)(?:\/(content))?\/?$/);
@@ -22,7 +27,18 @@ export function App() {
   const route = resolveRoute(window.location.pathname);
   if (!route) return <HomePage />;
   if (route.role === "play") return <PlayPage sessionCode={route.sessionCode} />;
-  if (route.role === "display") return <DisplayPage sessionCode={route.sessionCode} />;
+  if (route.role === "display")
+    return (
+      <Suspense
+        fallback={
+          <main className="presentation-shell">
+            <p role="status">{getMessages().display.connecting}</p>
+          </main>
+        }
+      >
+        <DisplayPage sessionCode={route.sessionCode} />
+      </Suspense>
+    );
   if (route.section === "content") return <ContentAdminPage sessionCode={route.sessionCode} />;
   return <AdminPage sessionCode={route.sessionCode} />;
 }

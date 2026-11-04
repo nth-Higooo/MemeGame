@@ -479,6 +479,9 @@ export function projectPublicState(
       : [],
     submissionCount: round?.submissions.length ?? 0,
     eligibleVoterCount: round?.eligibleVoterIds.length ?? 0,
+    votesCast: ["VOTING", "RESULT", "LEADERBOARD", "FINISHED"].includes(state.phase)
+      ? (round?.votes.length ?? 0)
+      : 0,
     hasSubmitted: Boolean(
       viewerId && round?.submissions.some((item) => item.playerId === viewerId),
     ),

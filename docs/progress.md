@@ -73,9 +73,9 @@ Verification redesign:
 
 ## Phase tiếp theo
 
-Phase 06 starts in a separate development session:
+Phase 07 starts in a separate development session:
 
-- Kết nối Display/Admin UI vào API và WebSocket thật; player integration is complete in Phase 05.
+- Kết nối Admin UI vào API và WebSocket thật; Player and Display integration are complete.
 - Chuyển copy chi tiết còn lại vào locale catalog trước khi thêm ngôn ngữ thứ hai.
 
 ## Known issues / quyết định cần chốt
@@ -170,3 +170,26 @@ Verification and remaining scope:
 - Frontend Admin/Display live workflows remain for later phases.
 - Restoring identity requires browser storage; clearing site data loses the anonymous participant credential.
 - Physical iOS/Android device testing and a production deployment are not performed in this phase.
+
+## Phase 06 — Presentation Display
+
+Status: **complete**.
+
+- Implemented the live `/display/:sessionCode` route from the completed Phase 04/05 branch (`ft/real-time-engine`), on `ft/presentation-display`; `main` had only early schemas and was left intact.
+- Added a locally generated QR join link, lobby presence, first-round animated introduction, large question/attachment, server-synchronized countdown, and submission progress.
+- Added anonymous reveal carousel, Community voting participation/countdown, Talent waiting, winner announcement, paginated animated leaderboard, and final celebration.
+- Added read-only reconnecting DISPLAY client with short-lived tickets, snapshot restoration, clock offset, backoff, heartbeat, and network/pause/expired states.
+- Added phase-scoped signed-ticket display media access and aggregate vote participation without exposing early authors or individual vote totals.
+- Preloads authorized GIFs in a bounded queue, reuses stable media slots across reveal/voting/results, revokes blobs, supports retry, and uses static first frames under reduced motion.
+- Added 16:9 720p/1080p styling, fallback sizes, keyboard/fullscreen presentation, low-profile controls, and Vietnamese copy.
+- Added lazy display loading so QR/presentation code does not load on the player route.
+- Added real-backend Playwright coverage and the external-screen/rehearsal guide in `docs/presentation-display.md`.
+
+Verification:
+
+- Strict TypeScript, ESLint, formatting, 26 unit tests, Vite production build, and Wrangler dry-run pass.
+- Presentation E2E: 6/6 across 720p, 1080p, and desktop WebKit; shell regression E2E: 9/9 across mobile Chrome/Safari and desktop Chrome.
+- Inspected browser screenshots for lobby/QR, anonymous reveal, and final celebration. Fullscreen is tested through the browser API in Chromium; no physical projector is needed.
+- Existing shared app bundle retains a roughly 512 kB size advisory; presentation/QR code loads separately in a roughly 43 kB chunk.
+
+Remaining scope: physical projector/mobile-camera verification, production deployment, and live Admin workflows. Display carousel timing never changes the server phase. No new D1 migration is required.
