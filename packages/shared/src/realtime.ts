@@ -30,6 +30,7 @@ export const adminActionSchema = z.enum([
 const commandBase = { commandId: z.uuid() };
 export const gameCommandSchema = z.discriminatedUnion("type", [
   z.object({ ...commandBase, type: z.literal("SUBMIT_MEME"), memeAssetId: entityIdSchema }),
+  z.object({ ...commandBase, type: z.literal("REPLACE_MEME"), memeAssetId: entityIdSchema }),
   z.object({ ...commandBase, type: z.literal("CAST_VOTE"), submissionId: entityIdSchema }),
   z.object({ ...commandBase, type: z.literal("ADMIN_ACTION"), action: adminActionSchema }),
   z.object({
@@ -88,6 +89,9 @@ export const publicSessionStateSchema = z.object({
   eligibleVoterCount: z.number().int().nonnegative(),
   hasSubmitted: z.boolean(),
   hasVoted: z.boolean(),
+  ownSubmissionId: entityIdSchema.nullable(),
+  ownMemeAssetId: entityIdSchema.nullable(),
+  canVote: z.boolean(),
   winnerSubmissionId: entityIdSchema.nullable(),
 });
 export type PublicSessionState = z.infer<typeof publicSessionStateSchema>;
@@ -119,6 +123,13 @@ export const connectionTicketSchema = z.object({
   nonce: z.uuid(),
 });
 export type ConnectionTicket = z.infer<typeof connectionTicketSchema>;
+
+export const connectionAttachmentSchema = z.object({
+  role: sessionRoleSchema,
+  subjectId: entityIdSchema.nullable(),
+  connectedAt: z.number().int().nonnegative(),
+});
+export type ConnectionAttachment = z.infer<typeof connectionAttachmentSchema>;
 
 export const createSessionSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -176,6 +187,7 @@ export const engineRoundSchema = z.object({
   submissions: z.array(engineSubmissionSchema),
   votes: z.array(engineVoteSchema),
   eligibleVoterIds: z.array(entityIdSchema),
+  awaitingTieBreak: z.boolean(),
   winnerSubmissionId: entityIdSchema.nullable(),
   finalizedAt: z.number().int().nonnegative().nullable(),
 });
@@ -204,3 +216,21 @@ export const persistedGameStateSchema = z.object({
   tieBreaker: z.enum(["EARLIEST_SUBMISSION", "RANDOM", "TALENT_DECIDES"]),
 });
 export type PersistedGameState = z.infer<typeof persistedGameStateSchema>;
+
+export const playerConnectionSchema = z.object({
+  player: z.object({ id: entityIdSchema, displayName: z.string() }),
+  reconnectToken: z.string().optional(),
+  connection: z.object({ url: z.string(), protocols: z.array(z.string()) }),
+});
+export const playerRoomSchema = z.object({ name: z.string(), status: z.string() });
+export const playerAssetSchema = z.object({
+  id: entityIdSchema,
+  title: z.string(),
+  tags: z.array(z.string()),
+  altText: z.string(),
+  contentType: z.string().nullable(),
+});
+export const playerContentSchema = z.object({
+  assets: z.array(playerAssetSchema),
+  participation: z.object({ submissions: z.number(), votes: z.number(), wins: z.number() }),
+});

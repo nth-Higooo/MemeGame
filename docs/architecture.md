@@ -32,9 +32,11 @@ Luồng chính:
 ## Khả năng phục hồi
 
 - WebSocket hibernation giảm thời gian CPU khi phòng không có message.
-- DO alarm sẽ được thêm ở Phase 04 để chuyển phase đúng hạn ngay cả khi không có client online.
-- Mỗi admin command sẽ có idempotency key và audit event.
+- DO alarm chuyển phase đúng hạn ngay cả khi không có client online; handler kiểm tra deadline để an toàn với alarm at-least-once.
+- Mỗi command có idempotency UUID và audit event. Submission/vote còn có unique constraint trong D1.
 - Rollback nghiệp vụ không xóa lịch sử: admin tạo command bù hoặc khôi phục checkpoint, tăng revision và phát snapshot mới.
+
+Phase 04 lưu snapshot versioned trong cả Durable Object storage và `sessions.state_json`. Khi thức dậy sau hibernation, snapshot D1 có version cao hơn sẽ sửa lại DO storage. Metadata socket được `serializeAttachment` để giữ identity qua hibernation. Chi tiết tại [realtime-engine.md](realtime-engine.md).
 
 ## Bảo mật
 
@@ -44,4 +46,4 @@ Admin đăng nhập qua password đã hash và nhận cookie `HttpOnly`, `Secure
 
 Game engine nên tách `GameDefinition` (phase graph, commands, public projections, scoring) khỏi transport và persistence. Meme Party là definition đầu tiên; session/identity/reconnect vẫn dùng chung cho mini-game sau.
 
-Phase 01 chỉ khai báo interface `GameDefinition`; chưa có transition, scoring hoặc luật chơi thực thi. Điều này giữ ranh giới package rõ mà không kéo gameplay vào phase nền tảng.
+`packages/game-engine` hiện chứa reducer Phase 04 thuần TypeScript; Worker chịu trách nhiệm auth, D1, alarm và broadcast. Ranh giới này cho phép test transition không cần Cloudflare runtime và giữ đường mở rộng cho mini-game sau.

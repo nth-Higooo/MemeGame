@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clientMessageSchema, sessionCodeSchema } from "./contracts";
+import { sessionCodeSchema } from "./contracts";
+import { clientMessageSchema } from "./realtime";
 
 describe("shared contracts", () => {
   it("normalizes a valid session code", () => {

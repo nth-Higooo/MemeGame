@@ -2,6 +2,7 @@ import {
   adminBootstrapSchema,
   adminLoginSchema,
   contentImportSchema,
+  createSessionSchema,
   gamePresetInputSchema,
   gamePresetUpdateSchema,
   memeAssetInputSchema,
@@ -9,6 +10,8 @@ import {
   questionInputSchema,
   questionUpdateSchema,
   reorderSchema,
+  sessionCodeSchema,
+  ticketRequestSchema,
   type ZodType,
 } from "@misthy/shared";
 import { Hono } from "hono";
@@ -26,6 +29,7 @@ import {
   type AdminSession,
 } from "./auth";
 import { ALLOWED_IMAGE_TYPES, inspectImageSignature, uploadLimit } from "./media";
+import { createGameSession, issueRoleTicket } from "./session-service";
 
 type Variables = { admin: AdminSession };
 const adminApi = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -729,6 +733,73 @@ adminApi.post("/content/import", async (c) => {
     },
     201,
   );
+});
+
+adminApi.post("/sessions", async (c) => {
+  const parsed = await readJson(c, createSessionSchema);
+  if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
+  const input = parsed.data.code
+    ? { name: parsed.data.name, presetId: parsed.data.presetId, code: parsed.data.code }
+    : { name: parsed.data.name, presetId: parsed.data.presetId };
+  try {
+    const created = await createGameSession(c.env, input, c.get("admin").sub);
+    if (!created) {
+      return c.json(
+        { error: "invalid_preset", message: "Preset không tồn tại hoặc không có câu hỏi." },
+        400,
+      );
+    }
+    const ticket = await issueRoleTicket(
+      c.env,
+      { id: created.sessionId, code: created.sessionCode },
+      "ADMIN",
+      c.get("admin").sub,
+    );
+    return c.json(
+      {
+        session: {
+          id: created.sessionId,
+          code: created.sessionCode,
+          name: created.state.name,
+          mode: created.state.mode,
+        },
+        connection: {
+          url: `/ws/${created.sessionCode}`,
+          protocols: ["misthy-v1", ticket],
+        },
+      },
+      201,
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("UNIQUE")) {
+      return c.json({ error: "code_in_use", message: "Mã phòng đã được sử dụng." }, 409);
+    }
+    throw error;
+  }
+});
+
+adminApi.post("/sessions/:sessionCode/ticket", async (c) => {
+  const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));
+  const parsed = await readJson(c, ticketRequestSchema);
+  if (!code.success || !parsed.success) {
+    return c.json(
+      { error: "validation_failed", message: "Vai trò hoặc mã phòng không hợp lệ." },
+      400,
+    );
+  }
+  const session = await c.env.DB.prepare(
+    "SELECT id,code FROM sessions WHERE code=? AND status!='ARCHIVED'",
+  )
+    .bind(code.data)
+    .first<{ id: string; code: string }>();
+  if (!session) return c.json({ error: "not_found", message: "Không tìm thấy phòng." }, 404);
+  const ticket = await issueRoleTicket(
+    c.env,
+    session,
+    parsed.data.role,
+    parsed.data.role === "DISPLAY" ? null : c.get("admin").sub,
+  );
+  return c.json({ connection: { url: `/ws/${session.code}`, protocols: ["misthy-v1", ticket] } });
 });
 
 export { adminApi };

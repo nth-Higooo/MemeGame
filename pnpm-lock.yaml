@@ -93,6 +93,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@misthy/game-engine':
+        specifier: workspace:*
+        version: link:../../packages/game-engine
       '@misthy/shared':
         specifier: workspace:*
         version: link:../../packages/shared

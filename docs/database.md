@@ -12,6 +12,7 @@ Never use an uploaded filename as an R2 key. Phase 03 uses `memes/YYYY/MM/<uuid>
 
 - `0001_initial.sql`: session/gameplay foundation (`sessions`, legacy session-scoped `admins`, `players`, legacy `memes`, `rounds`, `submissions`, `votes`, `audit_events`).
 - `0002_content_management.sql`: canonical `admin_users`, `meme_assets`, `questions`, `question_meme_assets`, `game_presets`, `preset_questions`, `score_events`, and login-attempt audit data. It also adds preset/question timing references to gameplay tables.
+- `0003_realtime_engine.sql`: versioned session snapshots, creator/finalization metadata, canonical meme-asset submissions/votes with command IDs, voter eligibility, and command audit uniqueness. Phase 01 prototype submission/vote rows are retained as `legacy_submissions` and `legacy_votes`.
 
 ```bash
 pnpm db:migrate:local
