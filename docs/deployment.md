@@ -44,3 +44,9 @@ Rollback application code using Cloudflare deployment versions. Fix D1 schema pr
 ## Phase 07 upgrade
 
 Apply migration `0004_talent_judging.sql` through the migration commands above before deploying the new Worker. No new cloud binding or secret is required. Existing automated sessions remain compatible; create a new manual session in the Admin dashboard for confirmed publication and protected Judge access. Judge credentials are provisioned per room through the authenticated dashboard, never through frontend environment variables. Use HTTPS for production cookie security and share only clean player/display/Judge URLs. See [operator guide](admin-control.md).
+
+## Phase 08 release gate
+
+Back up the intended database and apply migration `0005_operational_indexes.sql` before the hardened Worker. No additional paid service, binding or production secret is required. `MAX_UPLOAD_BYTES` is now clamped to a 20 MiB hard maximum; multipart overhead is separately bounded. New rooms admit at most 50 players.
+
+Read [QA acceptance/readiness](phase08-qa.md), [Event Day checklist](event-day.md) and [troubleshooting](troubleshooting.md) before authorizing a release. This development phase performs local tests and a deployment dry-run only. Functional local success does not grant production sign-off or verify venue media, cloud runtime eviction or remaining quota.

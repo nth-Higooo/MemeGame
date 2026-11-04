@@ -26,6 +26,7 @@ export const adminActionSchema = z.enum([
   "RESTART_ROUND",
   "RESET_SESSION",
   "STOP_ROUND",
+  "RECOVER_SESSION",
 ]);
 
 const commandBase = {
@@ -167,6 +168,8 @@ export const connectionTicketSchema = z.object({
 export type ConnectionTicket = z.infer<typeof connectionTicketSchema>;
 
 export const connectionAttachmentSchema = z.object({
+  rateWindowAt: z.number().nonnegative().optional(),
+  rateCount: z.number().int().nonnegative().optional(),
   authSessionId: z.string().optional(),
   authExpiresAt: z.number().int().positive().optional(),
   role: sessionRoleSchema,
@@ -218,6 +221,9 @@ export const enginePlayerSchema = z.object({
   displayName: z.string().min(1).max(32),
   score: z.number().int().nonnegative(),
   joinedAt: z.number().int().nonnegative(),
+});
+export const internalJoinSchema = enginePlayerSchema.extend({
+  reconnectTokenHash: z.string().min(32).max(128),
 });
 
 export const engineSubmissionSchema = z.object({

@@ -1,5 +1,6 @@
 export const ALLOWED_IMAGE_TYPES = ["image/gif", "image/webp", "image/png", "image/jpeg"] as const;
 export const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const HARD_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 export type ImageInfo = {
   contentType: (typeof ALLOWED_IMAGE_TYPES)[number];
@@ -82,5 +83,7 @@ export function inspectImageSignature(bytes: Uint8Array): ImageInfo | null {
 
 export function uploadLimit(envValue?: string) {
   const parsed = Number(envValue);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_UPLOAD_BYTES;
+  return Number.isSafeInteger(parsed) && parsed > 0
+    ? Math.min(parsed, HARD_MAX_UPLOAD_BYTES)
+    : DEFAULT_MAX_UPLOAD_BYTES;
 }

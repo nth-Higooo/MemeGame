@@ -42,3 +42,4 @@ Chat công khai, upload tự do từ người chơi, thanh toán, multi-region d
 - Phase 05 — Player experience connected to real APIs, media, identity, and realtime state.
 - Phase 06 — Presentation Display with read-only realtime state, QR join, fullscreen, and external-screen rehearsal.
 - Phase 07 — secure Admin control, protected Talent judging, confirmed results, audited corrections, projector control, isolated Dry Run, and both-mode E2E.
+- Phase 08 — acceptance QA, local browser concurrency, storage/recovery fault testing, resource/abuse protection, logging, accessibility checks, and Event Day runbook. Production deployment/sign-off is separate.

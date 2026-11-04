@@ -1,6 +1,6 @@
 # Tiến độ
 
-Cập nhật: 2026-11-04 (Asia/Bangkok)
+Cập nhật: 2026-11-05 (Asia/Bangkok)
 
 ## Phase 01 — Foundation
 
@@ -73,7 +73,7 @@ Verification redesign:
 
 ## Phase tiếp theo
 
-Phase 07 is complete below. Stop here; later production hardening/deployment requires a separate requested phase. Physical-device/projector verification, 50-player load measurement, and a second locale remain pending.
+Phase 08 implementation and acceptance review are recorded below. Stop after this phase; deployment and production sign-off remain separate. Physical-device/projector verification, venue/edge latency and media rehearsal, cloud runtime eviction verification, multi-room/soak testing, and a second locale remain pending.
 
 ## Known issues / quyết định cần chốt
 
@@ -226,3 +226,48 @@ Phase 07 changed files:
 - Shared/engine: `packages/shared/src/index.ts`, `packages/shared/src/realtime.ts`, `packages/game-engine/src/index.ts`, `packages/game-engine/src/index.test.ts`.
 - Workspace/tests: `package.json`, `pnpm-lock.yaml`, `playwright.admin.config.ts`, `tests/admin/admin.spec.ts`, `tests/player/player.spec.ts`, `tests/display/display.spec.ts`, `tests/e2e/shell.spec.ts`.
 - Documentation: `README.md`, `docs/admin-control.md`, `docs/architecture.md`, `docs/database.md`, `docs/deployment.md`, `docs/game-rules.md`, `docs/progress.md`, `docs/realtime-engine.md`, `docs/requirements.md`, `docs/testing.md`.
+
+## Phase 08 — Quality Assurance and Production Hardening
+
+Status: **Phase 08 complete**. **Production sign-off is not granted.** This work stops after Phase 08; no production deployment was performed.
+
+Implemented:
+
+- Atomic DO-serialized identity/snapshot joins, 50-player admission cap, normalized duplicate nickname rejection, per-identity/tab/room connection limits and hibernation-safe message budgets.
+- Bounded best-effort per-isolate HTTP rate limiting, request/upload caps, image dimension/trailer checks and configurable upload cap clamped to 20 MiB. No paid cloud limiter/service or production fault-injection endpoint was added.
+- Sanitized structured request/game/recovery logs and correlated 503 responses. D1/R2 failures fail safely; failed upload cleanup emits an asset-UUID warning for reconciliation.
+- Fixed production dependency advisories by pinning Zod 4.6.6 and Hono 4.13.11. Updated frozen lockfile installs successfully; `pnpm audit --prod --audit-level moderate` reports no known vulnerabilities as of 2026-11-05. The first audit had one high and one moderate advisory; neither is suppressed.
+- Warm state caching, single presence calculation per broadcast and precomputed vote totals; D1/DO reconciliation on activation or audited Admin recovery. Checkpoint/alarm failures after D1 commit no longer falsely reject accepted mutations.
+- Reduced content refetch fan-out from every state version to phase/round boundaries, bounded media lifetime offscreen, explicit media failure/retry, reduced-motion Admin/Judge playback and jittered reconnect across roles.
+- Player errors are scoped to the active phase/round so rejected-action messages do not linger into the next round; concurrency tests verify the next phase has no stale alert.
+- D1 scoring updates/inserts chunked for 50 players and visible-content queries chunked for 200 memes plus attachment. New migration `0005_operational_indexes.sql` applied to the isolated local database (7 SQL commands); query-plan checks cover personal history/login throttling indexes.
+- Added actual-SQLite integration/failure-injection tests and bounded local Playwright QA with 30 Talent / 50 Community browser contexts, reconnect, duplicate/late actions, ties, scoring and mode changes. Added Admin offline/online/reload coverage and keyboard/reduced-motion/media-lifecycle checks.
+- Detailed 20-scenario matrix, limits, measured caveats and reproduction commands in `docs/phase08-qa.md`; manual checklist in `docs/event-day.md`; incident guide in `docs/troubleshooting.md`.
+
+Local concurrency evidence (latest complete concurrency run):
+
+| Mode      | Independent browser players | Commands measured | ACK P50  | ACK P95  | Maximum  | Content metadata requests |
+| --------- | --------------------------- | ----------------- | -------- | -------- | -------- | ------------------------- |
+| Talent    | 30                          | 29                | 350 ms   | 652 ms   | 672 ms   | 210                       |
+| Community | 50                          | 99                | 1,015 ms | 2,143 ms | 2,341 ms | 452                       |
+
+Both runs preserved all expected submissions/votes/scores with no browser page errors and bounded request counts. Every player used the actual React app and a separate browser context. Tests ran on localhost with original tiny GIFs, not remote Cloudflare resources; no cloud quota was consumed. Raw metrics/screenshots are ignored under `artifacts/phase08`. Bursts from 30/50 renderers share a host with local SQLite, so these timings are not an edge benchmark. The 500 ms P95 product target is **not established**, and the measured burst P95 exceeds it.
+
+Verification / remaining acceptance:
+
+- `pnpm check` passes formatting, strict typecheck, ESLint, 46 unit/integration tests (8 shared, 13 engine, 25 Worker), Vite build and Wrangler dry-run against patched dependencies. Frozen install and production dependency audit pass. The first sandboxed dry-run logged a global log-path permission error despite bundling successfully; the rerun with writable `XDG_CONFIG_HOME` completed without that error.
+- All 30 distinct browser cases pass: QA 3/3, Player 8/8, Display 6/6, Admin 4/4 and route shells 9/9. Player/Admin/Display cover Chrome and WebKit; bounded concurrent runs use desktop Chrome with separate mobile-sized contexts. The final player-only error-clearing change was rechecked with the 30/50-client QA suite and all eight Player journeys.
+- Inspected final browser screenshots; negative-action alerts no longer linger into the next round. Media failure/retry, offscreen release/reload, keyboard join and reduced-motion playback pass at 320 px. Shell-only tests emit expected unavailable-API proxy messages; the real-backend suites run separately against Wrangler.
+- Controlled GameSession reconstruction preserves attachments, repairs a higher-version D1 checkpoint and lost alarm, and deduplicates replay. Actual cloud scheduler hibernation/eviction was not observed; deployed runtime verification remains pending.
+- No production readiness claim: latency target, physical Safari/Android/tablet/projector, real GIF bandwidth/decoding, quota/binding validation and runtime eviction require sign-off. Five simultaneous rooms and long-running soak are unverified. The security-updated Zod increases the main bundle to ~546 kB; Vite's chunk advisory remains. Worker dry-run is ~968 KiB / 165 KiB gzip.
+- HTTP limiting is per-isolate best effort and resets on rotation; socket counters are per connection, so reconnect starts a new message window. Authoritative admission limits remain per room. This is basic abuse protection, not distributed DDoS mitigation.
+
+Phase 08 changed files:
+
+- Shared/engine: `packages/shared/src/limits.ts`, `packages/shared/src/index.ts`, `packages/shared/src/realtime.ts`, `packages/game-engine/src/index.ts`.
+- Dependency/environment updates: `packages/shared/package.json`, `apps/worker/package.json`, `pnpm-lock.yaml`, `.env.example`.
+- Worker: `apps/worker/src/index.ts`, `apps/worker/src/protection.ts`, `apps/worker/src/observability.ts`, `apps/worker/src/game-session.ts`, `apps/worker/src/session-api.ts`, `apps/worker/src/session-service.ts`, `apps/worker/src/admin-api.ts`, `apps/worker/src/media.ts`, `apps/worker/migrations/0005_operational_indexes.sql`.
+- Integration/auth tests: `apps/worker/src/qa-harness.test-support.ts`, `apps/worker/src/qa.integration.test.ts`, `apps/worker/src/realtime-auth.test.ts`.
+- Web: `apps/web/src/components/operator-media.tsx`, `apps/web/src/lib/reconnect-delay.ts`, `apps/web/src/lib/player-session.ts`, `apps/web/src/lib/display-session.ts`, `apps/web/src/lib/admin-session.ts`, `apps/web/src/pages/play-page.tsx`, `apps/web/src/pages/admin-page.tsx`, `apps/web/src/i18n/player-vi.ts`, `apps/web/src/i18n/admin-vi.ts`.
+- Browser tooling/tests: `package.json`, `playwright.qa.config.ts`, `tests/qa/concurrency.spec.ts`, `tests/admin/admin.spec.ts`.
+- Documentation: `README.md`, `docs/phase08-qa.md`, `docs/event-day.md`, `docs/troubleshooting.md`, `docs/progress.md`, `docs/requirements.md`, `docs/testing.md`, `docs/database.md`, `docs/architecture.md`, `docs/deployment.md`, `docs/realtime-engine.md`, `docs/game-rules.md`, `docs/design-system.md`, `docs/player-experience.md`, `docs/presentation-display.md`.

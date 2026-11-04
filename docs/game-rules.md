@@ -51,5 +51,7 @@ Phiên mới mặc định `manualControl: true`: question/reveal/result/leaderb
 - Nhiều tab của một player dùng chung identity. Player chỉ offline khi tab cuối ngắt.
 - Hibernation giữ WebSocket và attachment; engine khôi phục snapshot từ DO storage/D1.
 - Alarm và finalization có thể được gọi lặp nhưng guard version/deadline/command ngăn kết quả hoặc điểm trùng.
+- Phase 08 giới hạn 50 người/phòng và từ chối biệt danh trùng sau chuẩn hóa Unicode, khoảng trắng và chữ hoa/thường. Danh tính và snapshot join cùng một transaction; nickname không phải credential để reconnect.
+- Admin có command đồng bộ/khôi phục timer có audit, không xóa bài/vote/điểm hoặc mở lại deadline đã hết. Đóng tab thừa khi chạm giới hạn ba socket/danh tính.
 
 Xem [realtime-engine.md](realtime-engine.md) để biết event contract, timing và recovery chi tiết.

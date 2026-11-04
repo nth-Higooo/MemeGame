@@ -100,21 +100,28 @@ sessionApi.get("/:sessionCode/content/:assetId?", async (c) => {
     headers.set("Cache-Control", "private, no-store");
     return new Response(object.body, { headers });
   }
-  const assets = ids.size
-    ? (
+  type VisibleAsset = {
+    id: string;
+    title: string;
+    tags_json: string;
+    alt_text: string;
+    content_type: string | null;
+  };
+  const assets: VisibleAsset[] = [];
+  // D1 permits at most 100 bound parameters per statement.
+  const visibleIds = [...ids];
+  for (let offset = 0; offset < visibleIds.length; offset += 90) {
+    const chunk = visibleIds.slice(offset, offset + 90);
+    assets.push(
+      ...(
         await c.env.DB.prepare(
-          `SELECT id,title,tags_json,alt_text,content_type FROM meme_assets WHERE id IN (${[...ids].map(() => "?").join(",")})`,
+          `SELECT id,title,tags_json,alt_text,content_type FROM meme_assets WHERE id IN (${chunk.map(() => "?").join(",")})`,
         )
-          .bind(...ids)
-          .all<{
-            id: string;
-            title: string;
-            tags_json: string;
-            alt_text: string;
-            content_type: string | null;
-          }>()
-      ).results
-    : [];
+          .bind(...chunk)
+          .all<VisibleAsset>()
+      ).results,
+    );
+  }
   const totals = await c.env.DB.prepare(
     `SELECT (SELECT count(*) FROM submissions WHERE player_id=?) AS submissions,(SELECT count(*) FROM votes WHERE voter_player_id=?) AS votes,(SELECT count(*) FROM score_events WHERE player_id=? AND reason='ROUND_WINNER') AS wins`,
   )
@@ -163,26 +170,19 @@ sessionApi.post("/:sessionCode/join", async (c) => {
   const reconnectToken = createReconnectToken();
   const reconnectHash = await digestText(reconnectToken);
   const joinedAt = Date.now();
-  await c.env.DB.prepare(
-    "INSERT INTO players (id,session_id,reconnect_token_hash,display_name,joined_at,last_seen_at) VALUES (?,?,?,?,?,?)",
-  )
-    .bind(
-      playerId,
-      session.id,
-      reconnectHash,
-      input.data.displayName,
-      new Date(joinedAt).toISOString(),
-      new Date(joinedAt).toISOString(),
-    )
-    .run();
   const response = await notifyPlayerJoined(c.env, session.code, {
     id: playerId,
     displayName: input.data.displayName,
     score: 0,
     joinedAt,
+    reconnectTokenHash: reconnectHash,
   });
   if (!response.ok) {
-    await c.env.DB.prepare("DELETE FROM players WHERE id=?").bind(playerId).run();
+    if (response.status >= 500)
+      return c.json(
+        { error: "service_unavailable", message: "Phòng tạm gián đoạn. Thử lại sau vài giây." },
+        503,
+      );
     const body: { message?: string } = await response
       .json<{ message?: string }>()
       .catch(() => ({}));

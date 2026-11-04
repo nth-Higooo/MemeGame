@@ -40,6 +40,8 @@ Phase 04 lưu snapshot versioned trong cả Durable Object storage và `sessions
 
 Phase 07 adds manual session orchestration: timed input windows lead to an unpublished proposal; only an explicit Admin confirmation persists final scoring. The browser-only Dry Run uses the same reducer without Worker writes. Admin/Judge authentication is separate; privilege checks survive socket hibernation. See [admin-control.md](admin-control.md).
 
+Phase 08 keeps validated authoritative state cached during warm DO execution. Activation or explicit Admin recovery reconciles D1/DO snapshots and the deadline alarm. D1 commit remains first; a later checkpoint failure cannot turn an accepted database mutation into a rejection. Player joins now commit identity and room snapshot atomically. Resource caps, bounded request/message limiting and sanitized structured logs are documented in [phase08-qa.md](phase08-qa.md).
+
 ## Bảo mật
 
 Admin đăng nhập qua password đã hash và nhận cookie `HttpOnly`, `Secure`, `SameSite=Strict`. Session/reconnect token chỉ lưu dạng hash trong D1. Upload đi qua API, kiểm tra magic bytes, MIME, kích thước, chiều ảnh và giới hạn tốc độ trước khi ghi R2. Các phần này được triển khai ở Phase 03–06.

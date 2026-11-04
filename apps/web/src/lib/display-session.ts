@@ -5,6 +5,7 @@ import {
 } from "@misthy/shared";
 import { useEffect, useRef, useState } from "react";
 import { getMessages } from "../i18n";
+import { reconnectDelay } from "./reconnect-delay";
 const copy = getMessages().display;
 
 async function ticket(code: string, signal?: AbortSignal) {
@@ -86,7 +87,7 @@ export function useDisplaySession(code: string) {
           clearTimeout(handshake);
           if (!disposed) {
             setStatus("disconnected");
-            timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempt++));
+            timer = setTimeout(() => void connect(), reconnectDelay(attempt++));
           }
         };
       } catch (error) {
@@ -96,7 +97,7 @@ export function useDisplaySession(code: string) {
           return;
         }
         setStatus("disconnected");
-        timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempt++));
+        timer = setTimeout(() => void connect(), reconnectDelay(attempt++));
       }
     };
     void connect();

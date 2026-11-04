@@ -123,6 +123,12 @@ for (const mode of ["TALENT_MODE", "COMMUNITY_MODE"]) {
       );
       const code = page.url().split("/").at(-1)!;
       await expect(page.getByRole("button", { name: "Bắt đầu vòng", exact: true })).toBeEnabled();
+      await page.context().setOffline(true);
+      await page.context().setOffline(false);
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await expect(page.getByRole("button", { name: "Bắt đầu vòng", exact: true })).toBeEnabled();
+      await page.reload();
+      await expect(page.getByRole("button", { name: "Bắt đầu vòng", exact: true })).toBeEnabled();
       await expect(page.getByAltText("QR tham gia phòng")).toBeVisible();
       await expect(page.getByRole("link", { name: "Mở màn hình trình chiếu" })).toHaveAttribute(
         "href",

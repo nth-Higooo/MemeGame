@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { issueConnectionTicket, verifyConnectionTicket } from "./realtime-auth";
 
 describe("realtime connection tickets", () => {
@@ -18,5 +18,14 @@ describe("realtime connection tickets", () => {
   it("rejects tampered tickets", async () => {
     const token = await issueConnectionTicket(ticket, secret);
     await expect(verifyConnectionTicket(`${token}x`, secret)).resolves.toBeNull();
+  });
+  it("rejects an expired connection ticket", async () => {
+    const token = await issueConnectionTicket(ticket, secret);
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61000);
+    try {
+      await expect(verifyConnectionTicket(token, secret)).resolves.toBeNull();
+    } finally {
+      clock.mockRestore();
+    }
   });
 });

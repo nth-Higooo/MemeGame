@@ -60,6 +60,8 @@ Stack ưu tiên Nunito, sau đó Segoe UI Variable/Segoe UI/system UI. Các font
 
 ## Component inventory
 
+Phase 08 adds `OperatorMedia({ src, alt })` for fixed-size Admin/Judge image slots, decode failure/retry and explicit GIF playback under reduced motion. Player media keeps a stable aspect ratio, retries fetch/decode failures and releases blob URLs outside the near-viewport window. These states reuse the same 44 px controls and Vietnamese locale catalog; no new color or motion token is required. Browser checks cover keyboard join, reduced-motion opt-in, 320 px overflow and offscreen reload; a full screen-reader/contrast audit remains on the Event Day checklist.
+
 | Component                                                              | Vai trò                                     |
 | ---------------------------------------------------------------------- | ------------------------------------------- |
 | `CelestialBackground`                                                  | Light/stage scene, cloud, star, grain       |

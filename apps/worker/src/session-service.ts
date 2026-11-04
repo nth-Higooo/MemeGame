@@ -161,7 +161,7 @@ export async function issueRoleTicket(
 export async function notifyPlayerJoined(
   env: Env,
   sessionCode: string,
-  player: PersistedGameState["players"][number],
+  player: PersistedGameState["players"][number] & { reconnectTokenHash: string },
 ) {
   const stub = env.GAME_SESSIONS.get(env.GAME_SESSIONS.idFromName(sessionCode));
   return stub.fetch("https://game.internal/internal/player", {

@@ -1,7 +1,8 @@
 import {
   clientMessageSchema,
   connectionAttachmentSchema,
-  enginePlayerSchema,
+  internalJoinSchema,
+  GAME_LIMITS,
   persistedGameStateSchema,
   type GameCommand,
   type ConnectionAttachment,
@@ -19,12 +20,15 @@ import {
 } from "@misthy/game-engine";
 import type { Env } from "./env";
 import { verifyConnectionTicket } from "./realtime-auth";
+import { logEvent } from "./observability";
 
 const textEncoder = new TextEncoder();
 const STATE_KEY = "engineState";
 const SESSION_ID_KEY = "sessionId";
 
 export class GameSession implements DurableObject {
+  // Warm events need no D1 snapshot read; activation/recovery reconciles durable mirrors.
+  private cachedState: PersistedGameState | null = null;
   // D1 awaits permit event interleaving; queue complete mutations per room.
   private mutationQueue: Promise<void> = Promise.resolve();
 
@@ -44,7 +48,16 @@ export class GameSession implements DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    return this.exclusive(() => this.handleFetch(request));
+    return this.exclusive(() => this.handleFetch(request)).catch(() => {
+      logEvent({ event: "game_error", code: "STORAGE_UNAVAILABLE" });
+      return Response.json(
+        {
+          error: "service_unavailable",
+          message: "Phòng tạm gián đoạn. Vui lòng thử lại sau vài giây.",
+        },
+        { status: 503, headers: { "Retry-After": "5" } },
+      );
+    });
   }
 
   private async handleFetch(request: Request): Promise<Response> {
@@ -62,7 +75,11 @@ export class GameSession implements DurableObject {
   }
 
   async alarm(): Promise<void> {
-    return this.exclusive(() => this.handleAlarm());
+    return this.exclusive(() => this.handleAlarm()).catch(() => {
+      logEvent({ event: "game_error", code: "ALARM_STORAGE_UNAVAILABLE" });
+      // Throw a sanitized error so the runtime retries the alarm without leaking service details.
+      throw new Error("Game alarm persistence unavailable");
+    });
   }
 
   private async handleAlarm(): Promise<void> {
@@ -80,12 +97,39 @@ export class GameSession implements DurableObject {
   }
 
   async webSocketMessage(socket: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
-    return this.exclusive(() => this.handleMessage(socket, rawMessage));
+    return this.exclusive(() => this.handleMessage(socket, rawMessage)).catch(() => {
+      logEvent({ event: "game_error", code: "STORAGE_UNAVAILABLE" });
+      socket.close(1011, "Storage temporarily unavailable; reconnect");
+    });
   }
 
   private async handleMessage(socket: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
+    const identity = this.readAttachment(socket);
+    if (!identity) {
+      socket.close(1008, "Missing identity");
+      return;
+    }
+    const now = Date.now();
+    if (
+      identity.rateWindowAt === undefined ||
+      now - identity.rateWindowAt >= GAME_LIMITS.messageWindowMs
+    ) {
+      identity.rateWindowAt = now;
+      identity.rateCount = 0;
+    }
+    identity.rateCount = (identity.rateCount ?? 0) + 1;
+    socket.serializeAttachment(identity);
+    if (identity.rateCount > GAME_LIMITS.messagesPerWindow) {
+      this.send(socket, {
+        type: "ERROR",
+        code: "RATE_LIMITED",
+        message: "Quá nhiều thao tác. Chờ vài giây rồi kết nối lại.",
+      });
+      socket.close(1013, "Rate limited; retry later");
+      return;
+    }
     const text = typeof rawMessage === "string" ? rawMessage : new TextDecoder().decode(rawMessage);
-    if (textEncoder.encode(text).byteLength > 8_192) {
+    if (textEncoder.encode(text).byteLength > GAME_LIMITS.messageBytes) {
       this.send(socket, {
         type: "ERROR",
         code: "MESSAGE_TOO_LARGE",
@@ -119,6 +163,13 @@ export class GameSession implements DurableObject {
       socket.close(1008, "Missing connection identity");
       return;
     }
+    if (
+      attachment.role === "ADMIN" &&
+      parsed.data.type === "COMMAND" &&
+      parsed.data.command.type === "ADMIN_ACTION" &&
+      parsed.data.command.action === "RECOVER_SESSION"
+    )
+      this.cachedState = null;
     const current = await this.loadState();
     if (parsed.data.type === "CLIENT_READY") {
       if (!(await this.privilegeAllowed(attachment, current.sessionId))) {
@@ -148,6 +199,16 @@ export class GameSession implements DurableObject {
         duplicate: result.duplicate,
       });
     } catch (error) {
+      logEvent({
+        event: "game_error",
+        sessionId: current.sessionId,
+        commandType: parsed.data.command.type,
+        code: error instanceof EngineError ? error.code : "STORAGE_UNAVAILABLE",
+      });
+      if (!(error instanceof EngineError)) {
+        socket.close(1011, "Storage temporarily unavailable; reconnect");
+        return;
+      }
       const engineError =
         error instanceof EngineError
           ? error
@@ -188,16 +249,35 @@ export class GameSession implements DurableObject {
   }
 
   private async joinPlayer(request: Request) {
-    const parsed = enginePlayerSchema.safeParse(await request.json().catch(() => null));
+    const parsed = internalJoinSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return Response.json({ error: "invalid_player" }, { status: 400 });
     try {
       const current = await this.loadState();
-      const next = addPlayer(current, parsed.data);
+      const { reconnectTokenHash, ...player } = parsed.data;
+      const next = addPlayer(current, player);
       if (next !== current) {
-        await this.commit(current, next, [{ type: "STATE_CHANGED" }], null, {
-          role: "PLAYER",
-          subjectId: parsed.data.id,
-        });
+        await this.commit(
+          current,
+          next,
+          [{ type: "STATE_CHANGED" }],
+          null,
+          {
+            role: "PLAYER",
+            subjectId: parsed.data.id,
+          },
+          [
+            this.env.DB.prepare(
+              "INSERT INTO players (id,session_id,reconnect_token_hash,display_name,joined_at,last_seen_at) VALUES (?,?,?,?,?,?)",
+            ).bind(
+              player.id,
+              current.sessionId,
+              reconnectTokenHash,
+              player.displayName,
+              new Date(player.joinedAt).toISOString(),
+              new Date(player.joinedAt).toISOString(),
+            ),
+          ],
+        );
         await this.broadcast(next);
       }
       return Response.json({ ok: true }, { status: 201 });
@@ -230,6 +310,22 @@ export class GameSession implements DurableObject {
     }
     if (!(await this.privilegeAllowed(ticket, current.sessionId)))
       return Response.json({ error: "unauthorized" }, { status: 401 });
+    const open = this.state
+      .getWebSockets()
+      .filter((socket) => socket.readyState === WebSocket.OPEN);
+    const sameIdentity = open.filter((socket) => {
+      const attachment = this.readAttachment(socket);
+      return attachment?.role === ticket.role && attachment.subjectId === ticket.subjectId;
+    });
+    if (
+      open.length >= GAME_LIMITS.sockets ||
+      sameIdentity.length >=
+        (ticket.role === "DISPLAY" ? GAME_LIMITS.displaySockets : GAME_LIMITS.socketsPerIdentity)
+    )
+      return Response.json(
+        { error: "connection_limit", message: "Đã mở quá nhiều tab. Đóng tab cũ rồi thử lại." },
+        { status: 429, headers: { "Retry-After": "10" } },
+      );
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
@@ -254,6 +350,7 @@ export class GameSession implements DurableObject {
   }
 
   private async loadState(): Promise<PersistedGameState> {
+    if (this.cachedState) return this.cachedState;
     const stored = persistedGameStateSchema.safeParse(await this.state.storage.get(STATE_KEY));
     const storedSessionId = await this.state.storage.get<string>(SESSION_ID_KEY);
     const sessionId = stored.success ? stored.data.sessionId : storedSessionId;
@@ -273,9 +370,20 @@ export class GameSession implements DurableObject {
     }
     if (database?.success && (!durable || database.data.version > durable.version)) {
       await this.state.storage.put(STATE_KEY, database.data);
+      await this.scheduleAlarm(database.data);
+      logEvent({
+        event: "state_recovered",
+        sessionId: database.data.sessionId,
+        version: database.data.version,
+      });
+      this.cachedState = database.data;
       return database.data;
     }
-    if (durable) return durable;
+    if (durable) {
+      await this.scheduleAlarm(durable);
+      this.cachedState = durable;
+      return durable;
+    }
     throw new Error("Game session is not initialized");
   }
 
@@ -312,11 +420,38 @@ export class GameSession implements DurableObject {
     effects: EngineEffect[],
     command: GameCommand | null,
     actor: EngineActor,
+    extraStatements: D1PreparedStatement[] = [],
   ) {
     const statements = this.persistenceStatements(previous, next, effects, command, actor);
-    await this.env.DB.batch(statements);
-    await this.state.storage.put(STATE_KEY, next);
-    await this.scheduleAlarm(next);
+    await this.env.DB.batch([...extraStatements, ...statements]);
+    this.cachedState = next;
+    // The D1 batch is committed. Never report it as rejected solely because the mirror failed.
+    try {
+      await this.state.storage.put(STATE_KEY, next);
+    } catch {
+      logEvent({
+        event: "game_error",
+        sessionId: next.sessionId,
+        version: next.version,
+        code: "CHECKPOINT_PENDING",
+      });
+    }
+    try {
+      await this.scheduleAlarm(next);
+    } catch {
+      logEvent({
+        event: "game_error",
+        sessionId: next.sessionId,
+        version: next.version,
+        code: "ALARM_RECOVERY_REQUIRED",
+      });
+    }
+    logEvent({
+      event: "game_commit",
+      sessionId: next.sessionId,
+      version: next.version,
+      commandType: command?.type ?? "SYSTEM",
+    });
   }
 
   private persistenceStatements(
@@ -375,9 +510,11 @@ export class GameSession implements DurableObject {
     } else if (next.round) {
       statements.push(
         this.env.DB.prepare(
-          `UPDATE rounds SET phase=?,phase_ends_at=?,phase_started_at=?,eligible_voter_ids_json=?,
+          `UPDATE rounds SET mode=CASE WHEN ?='QUESTION' THEN ? ELSE mode END,phase=?,phase_ends_at=?,phase_started_at=?,eligible_voter_ids_json=?,
            winner_submission_id=?,finalized_at=?,completed_at=?,revision=revision+1 WHERE id=?`,
         ).bind(
+          next.phase,
+          next.mode,
           next.phase,
           next.phaseEndsAt ? new Date(next.phaseEndsAt).toISOString() : null,
           next.phaseStartedAt ? new Date(next.phaseStartedAt).toISOString() : null,
@@ -422,7 +559,7 @@ export class GameSession implements DurableObject {
         );
       }
       if (effect.type === "ROUND_FINALIZED") {
-        this.appendScoreStatements(statements, next);
+        this.appendScoreStatements(statements, next, previous);
       }
       if (effect.type === "SCORE_CORRECTED") {
         statements.push(
@@ -504,27 +641,47 @@ export class GameSession implements DurableObject {
     return statements;
   }
 
-  private appendScoreStatements(statements: D1PreparedStatement[], state: PersistedGameState) {
+  private appendScoreStatements(
+    statements: D1PreparedStatement[],
+    state: PersistedGameState,
+    previous: PersistedGameState,
+  ) {
     const round = state.round!;
     const participantIds = new Set(round.submissions.map((item) => item.playerId));
     const winner = round.submissions.find((item) => item.id === round.winnerSubmissionId);
-    for (const player of state.players) {
+    const changed = state.players.filter(
+      (player) => previous.players.find((old) => old.id === player.id)?.score !== player.score,
+    );
+    for (let offset = 0; offset < changed.length; offset += 20) {
+      const chunk = changed.slice(offset, offset + 20);
       statements.push(
-        this.env.DB.prepare("UPDATE players SET score=? WHERE id=?").bind(player.score, player.id),
+        this.env.DB.prepare(
+          `UPDATE players SET score=CASE id ${chunk.map(() => "WHEN ? THEN ?").join(" ")} END WHERE session_id=? AND id IN (${chunk.map(() => "?").join(",")})`,
+        ).bind(
+          ...chunk.flatMap((player) => [player.id, player.score]),
+          state.sessionId,
+          ...chunk.map((player) => player.id),
+        ),
       );
-      if (participantIds.has(player.id) && state.scoring.participationPoints > 0) {
-        statements.push(
-          this.env.DB.prepare(
-            "INSERT INTO score_events (id,session_id,round_id,player_id,points,reason,metadata_json) VALUES (?,?,?,?,?,'PARTICIPATION','{}')",
-          ).bind(
+    }
+    const participants = state.players.filter(
+      (player) => participantIds.has(player.id) && state.scoring.participationPoints > 0,
+    );
+    for (let offset = 0; offset < participants.length; offset += 10) {
+      const chunk = participants.slice(offset, offset + 10);
+      statements.push(
+        this.env.DB.prepare(
+          `INSERT INTO score_events (id,session_id,round_id,player_id,points,reason,metadata_json) VALUES ${chunk.map(() => "(?,?,?,?,?,'PARTICIPATION','{}')").join(",")}`,
+        ).bind(
+          ...chunk.flatMap((player) => [
             crypto.randomUUID(),
             state.sessionId,
             round.id,
             player.id,
             state.scoring.participationPoints,
-          ),
-        );
-      }
+          ]),
+        ),
+      );
     }
     if (winner) {
       statements.push(
@@ -543,11 +700,13 @@ export class GameSession implements DurableObject {
   }
 
   private async scheduleAlarm(state: PersistedGameState) {
-    if (state.phaseEndsAt !== null && !state.paused && !state.deadlineExpired) {
-      await this.state.storage.setAlarm(state.phaseEndsAt);
-    } else {
-      await this.state.storage.deleteAlarm();
-    }
+    const target =
+      state.phaseEndsAt !== null && !state.paused && !state.deadlineExpired
+        ? state.phaseEndsAt
+        : null;
+    if ((await this.state.storage.getAlarm()) === target) return;
+    if (target !== null) await this.state.storage.setAlarm(target);
+    else await this.state.storage.deleteAlarm();
   }
 
   private connectedPlayerIds() {
@@ -561,6 +720,7 @@ export class GameSession implements DurableObject {
   }
 
   private async broadcast(state: PersistedGameState) {
+    const connected = this.connectedPlayerIds();
     for (const socket of this.state.getWebSockets()) {
       if (socket.readyState !== WebSocket.OPEN) continue;
       const attachment = this.readAttachment(socket);
@@ -569,7 +729,7 @@ export class GameSession implements DurableObject {
           socket.close(1008, "Authorization expired");
           continue;
         }
-        this.sendSnapshot(socket, state, attachment);
+        this.sendSnapshot(socket, state, attachment, connected);
       }
     }
   }
@@ -578,6 +738,7 @@ export class GameSession implements DurableObject {
     socket: WebSocket,
     state: PersistedGameState,
     attachment: ConnectionAttachment,
+    connected = this.connectedPlayerIds(),
   ) {
     this.send(socket, {
       type: "STATE_SYNC",
@@ -585,7 +746,7 @@ export class GameSession implements DurableObject {
         state,
         attachment.role,
         attachment.subjectId,
-        this.connectedPlayerIds(),
+        connected,
         Date.now(),
       ),
     });

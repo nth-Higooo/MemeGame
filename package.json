@@ -22,6 +22,7 @@
     "test:player": "playwright test --config playwright.player.config.ts",
     "test:display": "playwright test --config playwright.display.config.ts",
     "test:admin": "playwright test --config playwright.admin.config.ts",
+    "test:qa": "playwright test --config playwright.qa.config.ts",
     "visual:check": "node scripts/visual-check.mjs",
     "cf:typegen": "pnpm --filter @misthy/worker cf:typegen",
     "db:migrate:local": "pnpm --filter @misthy/worker db:migrate:local",

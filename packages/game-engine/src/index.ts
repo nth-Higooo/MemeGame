@@ -1,3 +1,4 @@
+import { GAME_LIMITS, nicknameKey } from "@misthy/shared";
 import type {
   GameCommand,
   GamePhase,
@@ -409,6 +410,10 @@ export function applyGameCommand(
   } else {
     requireRole(actor, ["ADMIN"]);
     switch (command.action) {
+      case "RECOVER_SESSION":
+        next = { ...state, version: state.version + 1 };
+        effects.push({ type: "STATE_CHANGED" });
+        break;
       case "STOP_ROUND":
         if (!state.round || state.round.finalizedAt !== null || state.paused)
           throw new EngineError("STOP_CLOSED", "Không thể dừng vòng ở trạng thái này.");
@@ -562,6 +567,12 @@ export function addPlayer(
   if (state.phase !== "LOBBY") {
     throw new EngineError("SESSION_STARTED", "Không thể tham gia sau khi trò chơi bắt đầu.");
   }
+  if (state.players.length >= GAME_LIMITS.players)
+    throw new EngineError("ROOM_FULL", "Phòng đã đủ 50 người chơi.");
+  if (
+    state.players.some((item) => nicknameKey(item.displayName) === nicknameKey(player.displayName))
+  )
+    throw new EngineError("NICKNAME_TAKEN", "Biệt danh đã được dùng. Hãy chọn tên khác.");
   return { ...state, version: state.version + 1, players: [...state.players, player] };
 }
 
@@ -582,6 +593,10 @@ export function projectPublicState(
     role === "JUDGE" ||
     ["RESULT", "LEADERBOARD", "FINISHED"].includes(state.phase);
   const showVotes = role === "ADMIN" || ["RESULT", "LEADERBOARD", "FINISHED"].includes(state.phase);
+  const voteCounts = new Map<string, number>();
+  if (showVotes)
+    for (const vote of round?.votes ?? [])
+      voteCounts.set(vote.submissionId, (voteCounts.get(vote.submissionId) ?? 0) + 1);
   return {
     version: state.version,
     sessionCode: state.sessionCode,
@@ -609,9 +624,7 @@ export function projectPublicState(
           id: submission.id,
           memeAssetId: submission.memeAssetId,
           authorPlayerId: showAuthors ? submission.playerId : null,
-          voteCount: showVotes
-            ? (round?.votes.filter((vote) => vote.submissionId === submission.id).length ?? 0)
-            : null,
+          voteCount: showVotes ? (voteCounts.get(submission.id) ?? 0) : null,
         }))
       : [],
     submissionCount: round?.submissions.length ?? 0,

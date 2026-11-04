@@ -85,3 +85,5 @@ Create a content pack in Content Studio, then sign in at `/admin/MT2026` to crea
 Open `/display/<returned-code>` on the external screen and press **F** for fullscreen. Rehearse in a desktop browser at 1280×720 or 1920×1080. See [presentation guide](docs/presentation-display.md) for QR reachability, extended-screen setup, and `pnpm test:display`.
 
 See [Admin operator guide](docs/admin-control.md) for manual rounds, separate Judge login, confirmed publication, reasoned overrides, score corrections, and browser-only Dry Run. New rooms require Admin confirmation before publishing either mode's result. Run `pnpm test:admin` after the isolated database setup in [testing](docs/testing.md).
+
+Phase 08 adds bounded local `pnpm test:qa` runs with 30/50 real browser players, storage failure integration tests, resource limits, rate protection, structured logs and recovery controls. See [acceptance/readiness report](docs/phase08-qa.md), [Event Day checklist](docs/event-day.md), and [troubleshooting](docs/troubleshooting.md). Production sign-off remains separate from local test success; apply all five migrations before using the hardened Worker.

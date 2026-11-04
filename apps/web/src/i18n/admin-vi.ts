@@ -1,4 +1,7 @@
 export const adminVi = {
+  recover: "Đồng bộ & khôi phục timer",
+  mediaFailure: "Không tải được ảnh. Kiểm tra mạng hoặc thư viện.",
+  mediaRetry: "Tải lại ảnh",
   hideDisplay: "Cho màn hình tạm nghỉ",
   showDisplay: "Tiếp tục trình chiếu",
   stale: "Trạng thái đã thay đổi. Đóng hộp thoại và kiểm tra lại trước khi xác nhận.",

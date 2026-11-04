@@ -1,5 +1,6 @@
 // Vietnamese player catalog; add parallel catalogs when another locale is enabled.
 export const playerVi = {
+  taiLaiAnh: "Tải lại ảnh",
   xem: "Xem",
   round: (current: number, total: number) => `Vòng ${current} / ${total}`,
   selectMeme: (title: string) => `Chọn meme ${title}`,

@@ -43,7 +43,7 @@ pnpm db:migrate:local
 pnpm dev:single-origin
 ```
 
-Use the existing authenticated session API to create a real room, then open `http://localhost:8787/display/<code>`. Admin live UI is a later phase; server APIs and admin WebSocket commands currently control presentation phases.
+Create a real room through the authenticated `/admin/MT2026` dashboard, then open `http://localhost:8787/display/<code>`. Admin controls the phase and can show intermission independently of timer pause; see [Admin control](admin-control.md). Reconnect backoff includes ±20% jitter as of Phase 08.
 
 Automated tests use the same isolated test database as the Phase 05 suite:
 

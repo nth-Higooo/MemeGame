@@ -73,6 +73,7 @@ Winner and participation score events are written with the final round result. M
 - `SET_MODE`: Admin only, Talent/Community mode before submissions (lobby/question/leaderboard).
 - `SET_SCREEN`: Admin only, `AUTO` or `INTERMISSION`; persists projector presentation independently from game phase/timer.
 - `ADMIN_ACTION STOP_ROUND`: proposes a no-winner result for review; publication still required. `ADVANCE` handles explicit reveal/vote close and presentation transitions.
+- `ADMIN_ACTION RECOVER_SESSION` (Phase 08): Admin-only audited reconciliation; discards the warm cache, validates durable mirrors, repairs the saved deadline alarm and broadcasts the current state. Preserves submissions, votes, score events and phase; never reopens expired input.
 
 All commands use shared Zod schemas and idempotency IDs. Version preconditions are checked after duplicate-ID acknowledgement so retrying a successfully applied command remains safe. Private proposal/tie fields, including tied candidate IDs, are projected only to Admin/Judge. Talent-decided Community nominations must choose among tied leaders; another choice requires a reasoned Admin override after nomination. Admin sees submissions during collection; players/display receive them only at reveal. Publication, override and score-correction dialogs reject stale state.
 
@@ -83,6 +84,8 @@ Important state is stored in both Durable Object storage and `sessions.state_jso
 After hibernation, attachments restore connection identity and Durable Object storage restores the engine. The session ID is kept as a separate recovery key. If the engine snapshot is invalid, or a partial write leaves D1 at a higher version, the object repairs its local snapshot from D1. Reconnecting clients always receive a fresh role-projected `STATE_SYNC` rather than relying on missed events.
 
 Cloudflare alarms are at-least-once, so deadline processing is deliberately safe to repeat. No `setInterval` or timer loop is used, allowing WebSocket hibernation.
+
+Phase 08 caches validated state while the object remains warm; activation and explicit Admin recovery compare D1/DO versions. Player identity and snapshot now join in one serialized atomic D1 batch. After a committed batch, checkpoint/alarm errors are logged separately; they cannot falsely reject an accepted mutation. Alarm storage failures throw a sanitized error so runtime retry remains enabled. Admission and serialized attachment message budgets cap resource use; see [phase08-qa.md](phase08-qa.md) for limits, failure-injection evidence and the distinction between controlled reconstruction and observed cloud hibernation.
 
 ## HTTP surface
 

@@ -7,8 +7,39 @@ import { GameSession } from "./game-session";
 import { verifyConnectionTicket } from "./realtime-auth";
 import { sessionApi } from "./session-api";
 import { judgeApi } from "./judge-api";
+import { protection } from "./protection";
+import { logEvent } from "./observability";
 
 const app = new Hono<{ Bindings: Env }>();
+app.use("*", async (c, next) => {
+  const requestId = crypto.randomUUID();
+  c.header("X-Request-Id", requestId);
+  const started = Date.now();
+  await next();
+  if (c.req.path.startsWith("/api/") || c.req.path.startsWith("/ws/"))
+    logEvent({
+      event: "http_request",
+      requestId,
+      route: c.req.routePath,
+      status: c.res.status,
+      durationMs: Date.now() - started,
+    });
+});
+app.onError((_error, c) => {
+  const requestId = c.res.headers.get("X-Request-Id") ?? crypto.randomUUID();
+  logEvent({ event: "service_error", requestId, code: "STORAGE_OR_RUNTIME_FAILURE" });
+  c.header("Retry-After", "5");
+  return c.json(
+    {
+      error: "service_unavailable",
+      message: "Dịch vụ tạm gián đoạn. Thử lại sau vài giây; dữ liệu đã xác nhận được giữ lại.",
+      requestId,
+    },
+    503,
+  );
+});
+app.use("/api/*", protection);
+app.use("/ws/*", protection);
 
 const securityHeaders = secureHeaders({
   contentSecurityPolicy: {

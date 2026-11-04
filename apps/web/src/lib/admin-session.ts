@@ -5,6 +5,7 @@ import {
   type PublicSessionState,
 } from "@misthy/shared";
 import { useEffect, useRef, useState } from "react";
+import { reconnectDelay } from "./reconnect-delay";
 
 export class AdminHttpError extends Error {
   constructor(
@@ -119,7 +120,7 @@ export function useAdminSession(code: string, role: "ADMIN" | "JUDGE", enabled: 
           if (disposed) return;
           setStatus(event.code === 1008 ? "unauthorized" : "disconnected");
           if (event.code !== 1008)
-            timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempts++));
+            timer = setTimeout(() => void connect(), reconnectDelay(attempts++));
         };
       } catch (caught) {
         if (disposed) return;
@@ -129,16 +130,25 @@ export function useAdminSession(code: string, role: "ADMIN" | "JUDGE", enabled: 
           return;
         }
         setStatus("disconnected");
-        timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempts++));
+        timer = setTimeout(() => void connect(), reconnectDelay(attempts++));
       }
     };
     void connect();
+    const online = () => setRetry((value) => value + 1);
+    const offline = () => {
+      setStatus("disconnected");
+      socket.current?.close();
+    };
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
     return () => {
       disposed = true;
       clearTimeout(timer);
       clearTimeout(handshake);
       clearInterval(heartbeat);
       socket.current?.close();
+      window.removeEventListener("online", online);
+      window.removeEventListener("offline", offline);
     };
   }, [code, role, enabled, retry]);
   const send = (value: GameCommand) => {

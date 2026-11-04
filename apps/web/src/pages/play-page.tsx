@@ -30,15 +30,15 @@ function PlayerImage({
 }) {
   const [url, setUrl] = useState("");
   const [failed, setFailed] = useState(false);
+  const [retryImage, setRetryImage] = useState(0);
   const placeholder = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
+        const nearViewport = entries.some((entry) => entry.isIntersecting);
+        setVisible(nearViewport);
+        if (!nearViewport) setUrl("");
       },
       { rootMargin: "200px" },
     );
@@ -59,8 +59,10 @@ function PlayerImage({
       .then(async (response) => {
         if (!response.ok) throw new Error("image");
         objectUrl = URL.createObjectURL(await response.blob());
-        if (active) setUrl(objectUrl);
-        else URL.revokeObjectURL(objectUrl);
+        if (active) {
+          setFailed(false);
+          setUrl(objectUrl);
+        } else URL.revokeObjectURL(objectUrl);
       })
       .catch(() => {
         if (active) setFailed(true);
@@ -70,24 +72,25 @@ function PlayerImage({
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [id, code, token, visible]);
-  if (failed)
-    return (
-      <div className="grid aspect-video place-items-center bg-white/50 p-3 text-xs">
-        {playerText.anhChuaSanSang}
-      </div>
-    );
-  if (!url)
-    return (
-      <div
-        ref={placeholder}
-        className="aspect-video bg-white/50"
-        aria-label={playerText.dangTaiAnh}
-      />
-    );
+  }, [id, code, token, visible, retryImage]);
   return (
-    <div>
-      {reduced && !animate ? (
+    <div ref={placeholder} className="aspect-video w-full">
+      {failed ? (
+        <div className="grid h-full place-items-center bg-white/50 p-3 text-xs">
+          <span role="status">{playerText.anhChuaSanSang}</span>
+          <GlassButton
+            variant="ghost"
+            onClick={() => {
+              setFailed(false);
+              setRetryImage((value) => value + 1);
+            }}
+          >
+            {playerText.taiLaiAnh}
+          </GlassButton>
+        </div>
+      ) : !visible || !url ? (
+        <div className="h-full bg-white/50" aria-label={playerText.dangTaiAnh} />
+      ) : reduced && !animate ? (
         <GlassButton variant="soft" onClick={() => setAnimate(true)}>
           {playerText.phatAnhDong} {alt}
         </GlassButton>
@@ -97,6 +100,7 @@ function PlayerImage({
           alt={alt}
           className="aspect-video w-full rounded-2xl bg-white/60 object-contain"
           loading="lazy"
+          onError={() => setFailed(true)}
         />
       )}
     </div>
@@ -157,7 +161,8 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
     return () => {
       active = false;
     };
-  }, [game.identity, snapshot?.version, game.status, sessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Content and personal totals change at phase/round boundaries, not with every other player's action.
+  }, [game.identity, snapshot?.roundNumber, snapshot?.phase, game.status, sessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const seconds =
     snapshot?.phaseEndsAt === null || !snapshot
       ? null

@@ -28,6 +28,7 @@ import { GlassInput } from "../components/glass-input";
 import { GlassBadge } from "../components/glass-badge";
 import { GlassModal } from "../components/glass-modal";
 import { CountdownTimer } from "../components/countdown-timer";
+import { OperatorMedia } from "../components/operator-media";
 
 const c = getMessages().admin;
 type Confirmation = {
@@ -37,6 +38,8 @@ type Confirmation = {
 };
 function JudgeImage({ id, code, token }: { id: string; code: string; token: string }) {
   const [url, setUrl] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
     let objectUrl = "";
@@ -48,22 +51,34 @@ function JudgeImage({ id, code, token }: { id: string; code: string; token: stri
         });
       })
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("media unavailable");
         objectUrl = URL.createObjectURL(await response.blob());
         if (active) setUrl(objectUrl);
         else URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) setFailed(true);
+      });
     return () => {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [id, code, token]);
-  return url ? (
-    <img src={url} alt={c.anonymous} className="control-meme" />
-  ) : (
-    <div className="control-meme" />
-  );
+  }, [id, code, token, retry]);
+  if (failed)
+    return (
+      <div role="status" className="control-meme p-3 text-sm">
+        {c.mediaFailure}
+        <GlassButton
+          onClick={() => {
+            setFailed(false);
+            setRetry((value) => value + 1);
+          }}
+        >
+          {c.mediaRetry}
+        </GlassButton>
+      </div>
+    );
+  return url ? <OperatorMedia src={url} alt={c.anonymous} /> : <div className="control-meme" />;
 }
 export function AdminPage({ sessionCode }: { sessionCode: string }) {
   return <ControlPage sessionCode={sessionCode} />;
@@ -704,6 +719,16 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     </div>
                   )}
                   {state.phase === "FINISHED" && <p className="mt-4 font-bold">{c.finish}</p>}
+                  {!judge && (
+                    <GlassButton
+                      className="mt-3"
+                      variant="ghost"
+                      disabled={disabled}
+                      onClick={() => action("RECOVER_SESSION")}
+                    >
+                      {c.recover}
+                    </GlassButton>
+                  )}
                 </GlassCard>
                 <GlassCard className="p-5">
                   <h2 className="font-black">{c.submissions}</h2>
@@ -721,11 +746,9 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                             token={game.token}
                           />
                         ) : (
-                          <img
-                            className="control-meme"
+                          <OperatorMedia
                             src={`/api/admin/assets/${submission.memeAssetId}/content`}
                             alt={`${c.submissions} ${index + 1}`}
-                            loading="lazy"
                           />
                         )}
                         <p className="mt-2 text-sm font-bold">

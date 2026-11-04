@@ -14,6 +14,7 @@ Never use an uploaded filename as an R2 key. Phase 03 uses `memes/YYYY/MM/<uuid>
 - `0002_content_management.sql`: canonical `admin_users`, `meme_assets`, `questions`, `question_meme_assets`, `game_presets`, `preset_questions`, `score_events`, and login-attempt audit data. It also adds preset/question timing references to gameplay tables.
 - `0003_realtime_engine.sql`: versioned session snapshots, creator/finalization metadata, canonical meme-asset submissions/votes with command IDs, voter eligibility, and command audit uniqueness. Phase 01 prototype submission/vote rows are retained as `legacy_submissions` and `legacy_votes`.
 - `0004_talent_judging.sql`: per-session `judge_grants` with salted PBKDF2 credentials and `judge_sessions` with SHA-256 token digests, expiry, and cascading revocation. No raw Judge password or session token is stored.
+- `0005_operational_indexes.sql`: personal submission/vote/score lookups, login-time expression index, recent sessions and Judge-session expiry. Existing schemas/data remain intact; integration tests verify query-plan usage.
 
 ```bash
 pnpm db:migrate:local
@@ -31,6 +32,8 @@ Phase 03 implements `INDIVIDUAL`; API validation rejects reserved `TEAM` presets
 Gameplay uniqueness remains enforced by `(round_id, player_id)` for submissions and `(round_id, voter_player_id)` for votes. `score_events` is append-only scoring history.
 
 Manual-session provisional results live in the validated versioned session snapshot until Admin publication. Publication persists winner and score events in one batch. Audited score corrections append `ADMIN_CORRECTION` events with actor, reason, and command ID; command audit payloads include before/after scores. Published manual rounds cannot be destructively restarted/reset. The UI shows only the latest 100 audit entries; older entries remain in D1.
+
+Phase 08 joins insert identity and update the authoritative snapshot in the same DO-serialized D1 batch; failed joins leave no orphan identity. New duplicate nicknames are rejected after Unicode/case/whitespace normalization in the authority. Historical duplicates are retained. Scoring batches and content queries are chunked to respect D1 query/parameter budgets. See [QA report](phase08-qa.md).
 
 ## Authentication data
 

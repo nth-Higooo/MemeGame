@@ -32,6 +32,7 @@ import {
 } from "./auth";
 import { ALLOWED_IMAGE_TYPES, inspectImageSignature, uploadLimit } from "./media";
 import { createGameSession, issueRoleTicket } from "./session-service";
+import { logEvent } from "./observability";
 
 type Variables = { admin: AdminSession };
 const adminApi = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -254,6 +255,22 @@ adminApi.post("/assets", async (c) => {
       415,
     );
   }
+  if (
+    (inspected.width !== null && (inspected.width < 1 || inspected.width > 4096)) ||
+    (inspected.height !== null && (inspected.height < 1 || inspected.height > 4096)) ||
+    (inspected.width !== null &&
+      inspected.height !== null &&
+      inspected.width * inspected.height > 16000000)
+  )
+    return c.json(
+      { error: "image_dimensions", message: "Ảnh tối đa 4096 px mỗi chiều và 16 megapixel." },
+      413,
+    );
+  if (
+    inspected.contentType === "image/gif" &&
+    (bytes.length < 14 || bytes[bytes.length - 1] !== 0x3b)
+  )
+    return c.json({ error: "invalid_file", message: "Tệp GIF chưa hoàn chỉnh." }, 415);
   let tags: unknown;
   try {
     tags = JSON.parse(String(form.get("tags") ?? "[]"));
@@ -297,7 +314,11 @@ adminApi.post("/assets", async (c) => {
       )
       .run();
   } catch (error) {
-    await c.env.MEME_BUCKET.delete(objectKey);
+    try {
+      await c.env.MEME_BUCKET.delete(objectKey);
+    } catch {
+      logEvent({ event: "service_error", code: "R2_CLEANUP_REQUIRED", assetId: id });
+    }
     throw error;
   }
   const row = await c.env.DB.prepare("SELECT * FROM meme_assets WHERE id=?")

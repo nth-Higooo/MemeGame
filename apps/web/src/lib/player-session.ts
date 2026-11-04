@@ -6,6 +6,7 @@ import {
   type PublicSessionState,
 } from "@misthy/shared";
 import { useEffect, useRef, useState } from "react";
+import { reconnectDelay } from "./reconnect-delay";
 
 const playerText = getMessages().player;
 
@@ -68,6 +69,7 @@ export function usePlayerSession(code: string) {
     if (!identity) return;
     let disposed = false;
     let attempts = 0;
+    let lastPhaseKey = "";
     let timer: ReturnType<typeof setTimeout>;
     let heartbeat: ReturnType<typeof setInterval>;
     let handshake: ReturnType<typeof setTimeout>;
@@ -111,6 +113,11 @@ export function usePlayerSession(code: string) {
           try {
             const message = serverMessageSchema.parse(JSON.parse(String(event.data)));
             if (message.type === "STATE_SYNC") {
+              const phaseKey = `${message.state.roundNumber}:${message.state.phase}:${message.state.phaseStartedAt}`;
+              if (phaseKey !== lastPhaseKey) {
+                lastPhaseKey = phaseKey;
+                setError("");
+              }
               setSnapshot((previous) =>
                 !previous || message.state.version >= previous.version ? message.state : previous,
               );
@@ -140,7 +147,7 @@ export function usePlayerSession(code: string) {
           clearInterval(heartbeat);
           if (!disposed) {
             setStatus("disconnected");
-            timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempts++));
+            timer = setTimeout(() => void connect(), reconnectDelay(attempts++));
           }
         };
       } catch (caught) {
@@ -158,7 +165,7 @@ export function usePlayerSession(code: string) {
           return;
         }
         setStatus("disconnected");
-        timer = setTimeout(() => void connect(), Math.min(15000, 500 * 2 ** attempts++));
+        timer = setTimeout(() => void connect(), reconnectDelay(attempts++));
       }
     };
     void connect();

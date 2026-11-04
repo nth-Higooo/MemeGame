@@ -68,3 +68,9 @@ The Admin config reuses the isolated player Worker on port 8790 and its test-onl
 Use `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` for system Chrome if needed. On Windows, set `XDG_CONFIG_HOME` to a writable temporary directory when Wrangler cannot write its normal global config/log path. Test credentials are local fixtures, never production configuration. Do not run the three real-backend suites simultaneously: they share a port and disposable database.
 
 Reducer tests verify manual deadlines, no premature scoring, Judge publication rejection, stale versions, repeat finalization, and score corrections. Browser engine tests do not establish physical tablet/projector performance or 50-player load capacity.
+
+## Phase 08 acceptance and hardening
+
+`pnpm test:qa` now exercises 30 Talent and 50 Community browser clients locally, plus media failure/retry, keyboard and reduced motion at 320 px. `apps/worker/src/qa.integration.test.ts` runs actual handlers/state mutations against SQLite migrations with deterministic D1/R2/checkpoint failures. The harness enforces D1 parameter/batch budgets and checks index query plans. It reconstructs objects and attachments rather than claiming cloud eviction was observed. Admin journeys now also exercise offline/online and reload.
+
+See [Phase 08 QA](phase08-qa.md) for the complete 20-scenario matrix, reproduction commands, operational bounds, timing measurements and explicit readiness limits. Build before browser suites, apply migration 0005 to the isolated database, and never run these suites concurrently or edit the Worker during a run.

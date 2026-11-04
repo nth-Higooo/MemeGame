@@ -1,6 +1,6 @@
 # Player experience — Phase 05
 
-`/play/:sessionCode` uses real HTTP responses and role-projected WebSocket state. No gameplay mock is imported by this route. Admin/Display remain independent shells for a later phase.
+`/play/:sessionCode` uses real HTTP responses and role-projected WebSocket state. No gameplay mock is imported by this route. Admin and Display were subsequently connected in Phases 06–07.
 
 ## Join and restore
 
@@ -10,7 +10,7 @@ Each connection exchanges the reconnect token over HTTP for a short-lived WebSoc
 
 ## Connectivity and time
 
-Reconnect uses exponential backoff from 500 ms to 15 seconds. The client reacquires a ticket on each attempt, handles online events, limits HTTP/handshake waits to 15 seconds, and closes silent connections after missing heartbeat responses. Ping every 25 seconds is for connection health and clock offset, not timer broadcasts.
+Reconnect uses exponential backoff from a 500 ms base to 15 seconds, with ±20% jitter added in Phase 08. The client reacquires a ticket on each attempt, handles online events, limits HTTP/handshake waits to 15 seconds, and closes silent connections after missing heartbeat responses. Ping every 25 seconds is for connection health and clock offset, not timer broadcasts. Errors from a rejected action clear when the authoritative phase/round changes.
 
 Countdown renders from `phaseEndsAt - (Date.now() + offset)`. At zero, player actions become disabled immediately and a message explains that the client is awaiting the server transition. Paused/disconnected state also disables actions. The server independently validates every deadline and role.
 
