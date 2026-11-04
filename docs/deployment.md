@@ -48,30 +48,37 @@ pnpm audit --prod --audit-level moderate
 
 ## First-time resource setup
 
-First review Cloudflare's R2 activation terms in the Dashboard. If the account owner declines, stop; this application's current media storage requires R2. After activation only, authenticate (`pnpm exec wrangler login`) and create the named resources. Resource creation is intentionally a manual action, not part of the scripts/workflow.
+First review Cloudflare's R2 activation terms in the Dashboard. If the account owner declines, stop; this application's current media storage requires R2. This account already has a D1 database named `misthy-meme-db`; do not create a duplicate. The local production binding must point to that database. After R2 activation, use read-only inventory commands first and create only the missing bucket. Resource creation is intentionally a manual action, not part of the scripts/workflow.
 
 PowerShell:
 
 ```powershell
-pnpm exec wrangler d1 create misthy-meme-party-production
-pnpm exec wrangler r2 bucket create misthy-meme-library-production
+pnpm exec wrangler d1 info DB --config apps/worker/wrangler.production.json
+pnpm exec wrangler r2 bucket list
 ```
 
 Ubuntu:
 
 ```bash
-pnpm exec wrangler d1 create misthy-meme-party-production
-pnpm exec wrangler r2 bucket create misthy-meme-library-production
+pnpm exec wrangler d1 info DB --config apps/worker/wrangler.production.json
+pnpm exec wrangler r2 bucket list
 ```
 
-Copy the D1 database UUID from the CLI output. In the same local shell, set the account, database and acknowledgement values; these are not application secrets, but do not commit the generated config:
+If the R2 list does not contain `misthy-meme-assets`, create it after activation:
+
+```powershell
+pnpm exec wrangler r2 bucket create misthy-meme-assets
+```
+
+Only for a different/new Cloudflare account with no D1, create a database and use its returned name and UUID. In this account, use the existing `misthy-meme-db` and UUID shown by `wrangler d1 info`. In the same local shell, set the account, database and acknowledgement values; these are not application secrets, but do not commit the generated config:
 
 PowerShell:
 
 ```powershell
 $env:CLOUDFLARE_ACCOUNT_ID = "<account-id>"
+$env:CLOUDFLARE_D1_DATABASE_NAME = "misthy-meme-db"
 $env:CLOUDFLARE_D1_DATABASE_ID = "<database-uuid>"
-$env:CLOUDFLARE_R2_BUCKET = "misthy-meme-library-production"
+$env:CLOUDFLARE_R2_BUCKET = "misthy-meme-assets"
 $env:CLOUDFLARE_FREE_PLAN_CONFIRMED = "true"
 $env:CLOUDFLARE_R2_ALREADY_ENABLED = "true"
 pnpm production:configure
@@ -82,26 +89,18 @@ Ubuntu:
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID='<account-id>'
+export CLOUDFLARE_D1_DATABASE_NAME='misthy-meme-db'
 export CLOUDFLARE_D1_DATABASE_ID='<database-uuid>'
-export CLOUDFLARE_R2_BUCKET='misthy-meme-library-production'
+export CLOUDFLARE_R2_BUCKET='misthy-meme-assets'
 export CLOUDFLARE_FREE_PLAN_CONFIRMED=true
 export CLOUDFLARE_R2_ALREADY_ENABLED=true
 pnpm production:configure
 pnpm production:check
 ```
 
-`production:configure` only changes the local production binding file. Review it and keep it out of commits if it contains account-specific IDs. `production:preflight` uses read-only Cloudflare commands to confirm existing resources and stops on missing R2/D1 access; it never creates or activates resources.
+`production:configure` only changes the local production binding file. Review it and keep it out of commits if it contains account-specific IDs. `production:check` validates only that local file; its success does not mean Cloudflare resources exist. `production:preflight` uses read-only Cloudflare commands to confirm existing resources and stops on missing R2/D1 access; it never creates or activates resources. Setting `CLOUDFLARE_R2_ALREADY_ENABLED=true` only acknowledges that the owner already enabled R2; it does not activate R2 or billing.
 
 ## Secrets, migrations, and deploy
-
-Create strong, unique Admin secrets with a password manager. For a manual shell deployment, use Cloudflare's secret prompts (do not put values in arguments, environment manifests committed to Git, `VITE_*`, or logs):
-
-```bash
-pnpm exec wrangler secret put ADMIN_SESSION_SECRET --config apps/worker/wrangler.production.json
-pnpm exec wrangler secret put ADMIN_BOOTSTRAP_PASSWORD --config apps/worker/wrangler.production.json
-```
-
-The commands prompt for values. Rotate/remove the bootstrap password after creating the owner. Judge credentials are separately provisioned in the Admin UI. Secrets are not set by the deployment script.
 
 Then run sequentially from the repository root, after the R2 gate is complete:
 
@@ -113,6 +112,17 @@ pnpm production:deploy
 ```
 
 Migration is an explicit step and follows a backup. Deployment scripts require explicit free-plan and already-enabled-R2 acknowledgements and check existing bindings before applying migrations or publishing. The Worker config declares SQLite Durable Object storage and `/api`, `/api/*`, `/ws`, `/ws/*` worker-first routing. SPA navigation falls back to `index.html`; API and WebSocket paths are not served as HTML.
+
+### Set Admin secrets on the first deployment
+
+For a new Worker, deploy the code first. Then immediately run the following commands and enter each value at Wrangler's hidden prompt. Cloudflare documents that `secret put` creates and deploys a new Worker version, so the Worker must exist first. Until both secrets are set, the site may load but Admin bootstrap/login is unavailable; do not open the room to players.
+
+```powershell
+pnpm exec wrangler secret put ADMIN_SESSION_SECRET --config apps/worker/wrangler.production.json
+pnpm exec wrangler secret put ADMIN_BOOTSTRAP_PASSWORD --config apps/worker/wrangler.production.json
+```
+
+Use strong, unique values stored in a password manager. Never put them in command arguments, `.env`, Wrangler `vars`, `VITE_*`, logs, or source control. Create the first Admin owner with the one-time bootstrap password, then rotate/remove that bootstrap secret. Judge credentials are provisioned separately in the Admin UI. On later releases, `wrangler secret put` remains available to rotate a secret and creates a Worker version immediately.
 
 After deployment, obtain the generated `workers.dev` URL from the Wrangler output or Dashboard, then run:
 
@@ -133,7 +143,7 @@ The full acceptance suite creates disposable production test records and a test 
 
 ## GitHub Actions deployment
 
-`.github/workflows/deploy.yml` is manual-only, main-branch-only, and uses the protected `production` GitHub Environment. Set Environment variables `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_R2_BUCKET`, and booleans `CLOUDFLARE_FREE_PLAN_CONFIRMED=true`, `CLOUDFLARE_R2_ALREADY_ENABLED=true`. Add a scoped `CLOUDFLARE_API_TOKEN` as an Environment secret. The manual run requires explicit confirmations that the Free plan/R2 activation, backup or empty database, and application secrets are ready. The workflow runs checks and build, then the read-only preflight, remote migrations and deploy. Protect the Environment with required human reviewers; keep the token restricted to this environment. The workflow does not create resources, set application secrets, or enable billing. Set the two acknowledgement variables only after the account owner verifies the current plan and completed R2 activation.
+`.github/workflows/deploy.yml` is manual-only, main-branch-only, and uses the protected `production` GitHub Environment. Set Environment variables `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_D1_DATABASE_NAME`, `CLOUDFLARE_R2_BUCKET`, and booleans `CLOUDFLARE_FREE_PLAN_CONFIRMED=true`, `CLOUDFLARE_R2_ALREADY_ENABLED=true`. Add a scoped `CLOUDFLARE_API_TOKEN` as an Environment secret. The manual run requires explicit confirmations that the Free plan/R2 activation, backup or empty database, and Admin secret values are prepared in a password manager for immediate setup after first deploy. The workflow runs checks and build, then the read-only preflight, remote migrations and deploy. Immediately afterward, set both Admin secrets with the Wrangler prompts above before opening the event. Protect the Environment with required human reviewers; keep the token restricted to this environment. The workflow does not create resources, set application secrets, or enable billing. Set the two acknowledgement variables only after the account owner verifies the current plan and completed R2 activation.
 
 ## Verification and HTTPS
 

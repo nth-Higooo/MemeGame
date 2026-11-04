@@ -278,8 +278,8 @@ Status: **local handover prepared; Cloudflare deployment blocked at explicit R2 
 
 Completed locally:
 
-- Added `apps/worker/wrangler.production.json` for one Worker serving the SPA/API, SQLite Durable Objects, D1, private R2, upload limit, and exact plus wildcard Worker-first API/WebSocket routes. Production IDs remain placeholders until the account owner completes setup.
-- Added config validation, explicit free-plan/R2 acknowledgements, read-only existing-resource preflight, migration/deployment gates, production route/health verifier, and a local production-profile rehearsal command. These scripts never activate billing or create resources.
+- Added `apps/worker/wrangler.production.json` for one Worker serving the SPA/API, SQLite Durable Objects, D1, private R2, upload limit, and exact plus wildcard Worker-first API/WebSocket routes. Operator-supplied account/database identifiers and the selected R2 name are stored in local config only; remote resources have not been verified.
+- Added config validation, explicit free-plan/R2 acknowledgements, read-only existing-resource preflight, migration/deployment gates, production route/health verifier, and a local production-profile rehearsal command. These scripts never activate billing or create resources. `production:check` validates only local config; `production:preflight` checks remote resource access.
 - Added a manual main-branch GitHub Actions deployment workflow using a protected `production` environment, scoped API token secret, required preflight acknowledgements, and migration/deploy steps. Application secrets remain a separate operator setup.
 - Added production two-mode browser acceptance coverage for Admin, player, display, R2 upload/download/cache behavior, and refresh/persistence, plus operational security tests for production config gates, encrypted backup tampering, path traversal, and restore authentication.
 - Added encrypted, checksum-verified D1/results/R2 backup collection and local-only authenticated unpack. The scripts do not import into cloud; the operator-reviewed disaster restore workflow is documented.
@@ -288,16 +288,17 @@ Completed locally:
 
 Cloudflare findings on 2026-11-05 (Asia/Bangkok):
 
-- Wrangler OAuth login and read-only account identity inspection succeeded. A D1 list returned no databases.
+- Wrangler OAuth login and read-only account identity inspection succeeded. The initial D1 list was empty before the operator provisioned a database. The operator's latest `wrangler d1 info DB --config apps/worker/wrangler.production.json` confirms the configured ID points to `misthy-meme-db` (21 tables, ~360 kB, recent reads/writes). The production config's local `database_name` is now aligned with that remote name. This database has data and must be backed up before migration; it is not a fresh empty database.
 - A read-only R2 bucket-list request returned Cloudflare error **10042**, requiring R2 activation in the Dashboard. Cloudflare's current R2 getting-started page requires the account owner to complete subscription checkout, even though a free monthly allowance exists. Work stopped at this billing/authorization gate. The account owner must review and explicitly complete `Dashboard → Storage & databases → R2 → Overview → checkout/activate subscription`, then tell the operator when it is complete.
-- No D1 or R2 bucket has been created. No production secrets were written. No remote migration/deploy was run. Do not set `CLOUDFLARE_R2_ALREADY_ENABLED=true` or proceed until the account owner confirms activation and current terms.
+- The operator has configured production account/database identifiers and selected `misthy-meme-assets` as the local R2 binding. Their remote bucket-create/list attempts still returned error **10042**. Preflight therefore stops at R2 before it checks D1, although the operator separately verified D1 access. This confirms R2 is not active yet, not that the local binding config is invalid. No production secret, remote migration, or deploy was performed by this agent. The acknowledgement variable does not enable R2; do not proceed until the account owner confirms activation and current terms.
 - The official free quotas and links are recorded in `docs/deployment.md`; recheck before event use because plan limits can change. No paid plan upgrade was selected.
 
 Verification:
 
 - Wrangler CLI help confirmed the current `d1 info`, `r2 bucket info/object put`, secret, and rollback command shapes. The config's static asset Worker-first exact/wildcard routes and single Worker topology are statically validated.
-- `pnpm lint` and `pnpm typecheck` passed. `pnpm test:ops` passes 5/5 after making Windows temp handling compatible with the restricted shell identity.
-- `pnpm check` passes formatting, lint, strict TypeScript, all 54 Vitest tests (8 shared, 13 engine, 28 Worker, 5 operations), frontend build, and standard Wrangler dry-run. Vite reports the known ~546 kB main chunk advisory.
+- The first `production:preflight` failure hid the safe underlying cause behind a generic wrapper. Updated it to report actionable R2/D1 preflight failures without echoing raw Wrangler output or config values; updated the `production:check` success text to explicitly say remote resources were not checked.
+- Corrected first-deploy secret ordering in the deployment guide and GitHub workflow gate: deploy the Worker, then promptly add the two Admin secrets through Wrangler prompts before opening the event. Cloudflare documents that `secret put` deploys a new Worker version and the first Worker must exist.
+- Follow-up `pnpm check` passes formatting, lint, strict TypeScript, 55 Vitest tests (8 shared, 13 engine, 28 Worker, 6 operations), frontend build, and standard Wrangler dry-run. Vite reports the known ~546 kB main chunk advisory. ESLint ignores generated production dry-run bundles.
 - `pnpm production:build` passes against the dedicated production config (968.66 KiB total / 165.27 KiB gzip); all expected static assets, SQLite DO, D1/R2 bindings, upload cap, and worker-first routes appear in Wrangler dry-run. The dry-run is local and does not contact Cloudflare.
 - `pnpm production:rehearse` passes 2/2 local Playwright production-profile acceptance cases for Talent and Community, including Admin login/content/media, player joins/submissions/voting, display WebSocket updates, winner publication, and refresh persistence. It used local Wrangler D1/R2/DO simulators and the installed Chrome browser; no cloud quota was consumed. Its initial attempt exposed and fixed missing migrations in the isolated rehearsal D1. Windows runtime teardown can log an access-denied/crash warning after the test cases pass; no server stays bound to port 8790 after cleanup.
 - Remote acceptance, actual HTTPS/WebSocket, cloud R2 cache behavior, remote migration/recovery, GitHub Actions execution, and production quota telemetry cannot be verified until the R2 gate is completed and resources are explicitly provisioned.
@@ -308,6 +309,6 @@ Phase 09 changed areas include production Wrangler config, `scripts/production*.
 Outstanding handoff steps:
 
 1. Account owner completes or declines the R2 subscription checkout. If declined, choose an alternative media provider in a separately scoped change; do not bypass the private R2 binding.
-2. After explicit activation, configure the account, create D1 and R2, enter the local bindings, and run the gated preflight.
+2. After explicit activation, list R2 buckets and create `misthy-meme-assets` only if absent. Keep the existing D1 `misthy-meme-db`; confirm its name/ID binding, then run the gated preflight.
 3. Provision secrets with Wrangler prompts, make a verified encrypted backup (or confirm a new empty DB), apply migrations, deploy, and verify the generated URL.
 4. Run both-mode production acceptance with test records, remove test assets/results, verify Admin/player/display/Judge workflows and reconnect persistence, then publish the verified URL.

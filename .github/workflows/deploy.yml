@@ -12,8 +12,8 @@ on:
         type: boolean
         required: true
         default: false
-      application_secrets_configured:
-        description: Admin session and bootstrap secrets already configured in Cloudflare
+      application_secrets_prepared:
+        description: Admin secrets are stored in a password manager and ready to set immediately after first deploy
         type: boolean
         required: true
         default: false
@@ -24,13 +24,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified && inputs.application_secrets_configured
+    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified && inputs.application_secrets_prepared
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      CLOUDFLARE_D1_DATABASE_NAME: ${{ vars.CLOUDFLARE_D1_DATABASE_NAME }}
       CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
       CLOUDFLARE_FREE_PLAN_CONFIRMED: "true"
       CLOUDFLARE_R2_ALREADY_ENABLED: "true"

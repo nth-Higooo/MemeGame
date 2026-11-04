@@ -83,6 +83,24 @@ export function requireFreeTierAcknowledgement(env = process.env) {
     );
 }
 
+export function formatProductionFailure(error) {
+  if (!(error instanceof Error))
+    return "An unknown local error occurred. No billing change was attempted.";
+  if (error.name === "ZodError")
+    return "Production config validation failed. Run pnpm production:check and review the configured bindings.";
+  if (error.message.startsWith("Stop:")) return error.message;
+  if (error.message.startsWith("Wrangler r2 bucket"))
+    return "R2 preflight failed. Confirm R2 is activated in the Cloudflare Dashboard and the configured bucket exists in this account. This tool never activates billing or upgrades plans.";
+  if (error.message.startsWith("Wrangler d1 info"))
+    return "D1 preflight failed. Confirm the configured database ID, account, and Wrangler credentials.";
+  if (
+    error.message.startsWith("Wrangler ") ||
+    error.message.startsWith("Could not start the pinned Wrangler CLI")
+  )
+    return error.message;
+  return "A local config or file operation failed. Check the local production config and see docs/deployment.md. No billing change was attempted.";
+}
+
 export function wrangler(args, { capture = false, input, env = {} } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(

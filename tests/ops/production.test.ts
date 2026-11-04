@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   productionConfigSchema,
+  formatProductionFailure,
   requireFreeTierAcknowledgement,
 } from "../../scripts/production-lib.mjs";
 import {
@@ -114,6 +115,18 @@ describe("production safeguards", () => {
         CLOUDFLARE_R2_ALREADY_ENABLED: "true",
       }),
     ).not.toThrow();
+  });
+  it("shows a safe actionable preflight reason without leaking raw diagnostics", () => {
+    expect(formatProductionFailure(new Error("Wrangler r2 bucket failed (exit 1)"))).toMatch(
+      /R2 preflight failed.*activated.*Dashboard/,
+    );
+    expect(formatProductionFailure(new Error("Stop: verify Workers Free"))).toContain(
+      "verify Workers Free",
+    );
+    const invalidConfig = new Error('invalid account_id "sensitive diagnostic detail"');
+    invalidConfig.name = "ZodError";
+    expect(formatProductionFailure(invalidConfig)).not.toContain("sensitive diagnostic detail");
+    expect(formatProductionFailure(invalidConfig)).toMatch(/production:check/);
   });
   it("rejects missing, duplicate and path-traversal archive entries", () => {
     const safe =
