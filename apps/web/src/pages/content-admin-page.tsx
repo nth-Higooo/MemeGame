@@ -203,7 +203,13 @@ export function ContentAdminPage({ sessionCode }: { sessionCode: string }) {
   );
 }
 
-function AdminLogin({ onAuthenticated }: { onAuthenticated: () => void }) {
+export function AdminLogin({
+  onAuthenticated,
+  title = "Đăng nhập Content Studio",
+}: {
+  onAuthenticated: () => void;
+  title?: string;
+}) {
   const [bootstrap, setBootstrap] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -235,9 +241,7 @@ function AdminLogin({ onAuthenticated }: { onAuthenticated: () => void }) {
       <CelestialBackground />
       <GlassCard className="relative w-full max-w-md p-6">
         <Brand />
-        <h1 className="mt-6 text-2xl font-black">
-          {bootstrap ? "Khởi tạo quản trị" : "Đăng nhập Content Studio"}
-        </h1>
+        <h1 className="mt-6 text-2xl font-black">{bootstrap ? "Khởi tạo quản trị" : title}</h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
           {bootstrap
             ? "Chỉ dùng một lần khi chưa có tài khoản."

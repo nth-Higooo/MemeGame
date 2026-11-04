@@ -18,8 +18,21 @@ const sessionApi = new Hono<{ Bindings: Env }>();
 sessionApi.get("/:sessionCode/display-media/:assetId", async (c) => {
   const token = c.req.header("Authorization")?.replace(/^Bearer /, "");
   const ticket = token ? await verifyConnectionTicket(token, c.env.ADMIN_SESSION_SECRET) : null;
-  if (!ticket || ticket.role !== "DISPLAY" || ticket.sessionCode !== c.req.param("sessionCode"))
+  if (
+    !ticket ||
+    !["DISPLAY", "JUDGE"].includes(ticket.role) ||
+    ticket.sessionCode !== c.req.param("sessionCode")
+  )
     return c.json({ message: "Kết nối màn hình đã hết hạn." }, 401);
+  if (
+    ticket.role === "JUDGE" &&
+    !(await c.env.DB.prepare(
+      "SELECT g.id FROM judge_grants g JOIN judge_sessions j ON j.grant_id=g.id WHERE g.id=? AND g.session_id=? AND g.active=1 AND j.token_hash=? AND j.expires_at>?",
+    )
+      .bind(ticket.subjectId, ticket.sessionId, ticket.authSessionId ?? "", Date.now())
+      .first())
+  )
+    return c.json({ message: "Quyền Talent đã hết hạn." }, 401);
   const session = await c.env.DB.prepare(
     "SELECT state_json FROM sessions WHERE id=? AND status!='ARCHIVED'",
   )

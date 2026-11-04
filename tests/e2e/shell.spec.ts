@@ -29,5 +29,5 @@ test("display and admin shells resolve session routes", async ({ page }) => {
   await expect(page.locator(".presentation-room")).toHaveText("MT2026");
   await expect(page.locator(".presentation-room")).toBeVisible();
   await page.goto("/admin/MT2026");
-  await expect(page.getByRole("heading", { name: /Chào buổi tiệc/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bàn điều khiển bữa tiệc" })).toBeVisible();
 });

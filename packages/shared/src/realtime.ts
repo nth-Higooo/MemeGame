@@ -25,14 +25,47 @@ export const adminActionSchema = z.enum([
   "SKIP",
   "RESTART_ROUND",
   "RESET_SESSION",
+  "STOP_ROUND",
 ]);
 
-const commandBase = { commandId: z.uuid() };
+const commandBase = {
+  commandId: z.uuid(),
+  expectedVersion: z.number().int().nonnegative().optional(),
+};
 export const gameCommandSchema = z.discriminatedUnion("type", [
   z.object({ ...commandBase, type: z.literal("SUBMIT_MEME"), memeAssetId: entityIdSchema }),
   z.object({ ...commandBase, type: z.literal("REPLACE_MEME"), memeAssetId: entityIdSchema }),
   z.object({ ...commandBase, type: z.literal("CAST_VOTE"), submissionId: entityIdSchema }),
   z.object({ ...commandBase, type: z.literal("ADMIN_ACTION"), action: adminActionSchema }),
+  z.object({
+    ...commandBase,
+    expectedVersion: z.number().int().nonnegative(),
+    type: z.literal("PUBLISH_RESULT"),
+    confirmed: z.literal(true),
+  }),
+  z.object({
+    ...commandBase,
+    type: z.literal("OVERRIDE_WINNER"),
+    expectedVersion: z.number().int().nonnegative(),
+    submissionId: entityIdSchema.nullable(),
+    reason: z.string().trim().min(5).max(300),
+    confirmed: z.literal(true),
+  }),
+  z.object({
+    ...commandBase,
+    type: z.literal("ADJUST_SCORE"),
+    expectedVersion: z.number().int().nonnegative(),
+    playerId: entityIdSchema,
+    delta: z.number().int().min(-10000).max(10000),
+    reason: z.string().trim().min(5).max(300),
+    confirmed: z.literal(true),
+  }),
+  z.object({ ...commandBase, type: z.literal("SET_MODE"), mode: gameModeSchema }),
+  z.object({
+    ...commandBase,
+    type: z.literal("SET_SCREEN"),
+    screen: z.enum(["AUTO", "INTERMISSION"]),
+  }),
   z.object({
     ...commandBase,
     type: z.literal("SELECT_WINNER"),
@@ -94,6 +127,12 @@ export const publicSessionStateSchema = z.object({
   ownMemeAssetId: entityIdSchema.nullable(),
   canVote: z.boolean(),
   winnerSubmissionId: entityIdSchema.nullable(),
+  provisionalWinnerId: entityIdSchema.nullable().default(null),
+  resultPending: z.boolean().default(false),
+  awaitingTieBreak: z.boolean().default(false),
+  tieCandidateIds: z.array(entityIdSchema).default([]),
+  manualControl: z.boolean().default(false),
+  presentationMode: z.enum(["AUTO", "INTERMISSION"]).default("AUTO"),
 });
 export type PublicSessionState = z.infer<typeof publicSessionStateSchema>;
 
@@ -116,6 +155,8 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 
 export const connectionTicketSchema = z.object({
+  authSessionId: z.string().optional(),
+  authExpiresAt: z.number().int().positive().optional(),
   sessionId: entityIdSchema,
   sessionCode: sessionCodeSchema,
   role: sessionRoleSchema,
@@ -126,6 +167,8 @@ export const connectionTicketSchema = z.object({
 export type ConnectionTicket = z.infer<typeof connectionTicketSchema>;
 
 export const connectionAttachmentSchema = z.object({
+  authSessionId: z.string().optional(),
+  authExpiresAt: z.number().int().positive().optional(),
   role: sessionRoleSchema,
   subjectId: entityIdSchema.nullable(),
   connectedAt: z.number().int().nonnegative(),
@@ -133,6 +176,18 @@ export const connectionAttachmentSchema = z.object({
 export type ConnectionAttachment = z.infer<typeof connectionAttachmentSchema>;
 
 export const createSessionSchema = z.object({
+  manualControl: z.boolean().default(true),
+  assetIds: z.array(entityIdSchema).min(1).max(250).optional(),
+  settings: z
+    .object({
+      mode: gameModeSchema,
+      submissionDurationSeconds: z.number().int().min(10).max(300),
+      votingDurationSeconds: z.number().int().min(5).max(180),
+      winnerPoints: z.number().int().min(0).max(10000),
+      participationPoints: z.number().int().min(0).max(1000),
+      tieBreaker: z.enum(["EARLIEST_SUBMISSION", "RANDOM", "TALENT_DECIDES"]),
+    })
+    .optional(),
   name: z.string().trim().min(1).max(100),
   presetId: entityIdSchema,
   code: sessionCodeSchema.optional(),
@@ -141,6 +196,7 @@ export const createSessionSchema = z.object({
 export const joinSessionSchema = z.object({
   displayName: z.string().trim().min(1).max(32),
 });
+export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 
 export const reconnectSessionSchema = z.object({ reconnectToken: z.string().min(32).max(256) });
 
@@ -181,6 +237,8 @@ export const engineVoteSchema = z.object({
 });
 
 export const engineRoundSchema = z.object({
+  provisionalWinnerId: entityIdSchema.nullable().optional(),
+  resultPending: z.boolean().optional(),
   id: entityIdSchema,
   number: z.number().int().positive(),
   questionIndex: z.number().int().nonnegative(),
@@ -194,6 +252,9 @@ export const engineRoundSchema = z.object({
 });
 
 export const persistedGameStateSchema = z.object({
+  presentationMode: z.enum(["AUTO", "INTERMISSION"]).optional(),
+  deadlineExpired: z.boolean().optional(),
+  manualControl: z.boolean().optional(),
   schemaVersion: z.literal(1),
   sessionId: entityIdSchema,
   sessionCode: sessionCodeSchema,
@@ -237,4 +298,27 @@ export const playerAssetSchema = z.object({
 export const playerContentSchema = z.object({
   assets: z.array(playerAssetSchema),
   participation: z.object({ submissions: z.number(), votes: z.number(), wins: z.number() }),
+});
+
+export const judgeCredentialSchema = z.object({
+  displayName: z.string().trim().min(1).max(80),
+  password: z.string().min(12).max(128),
+});
+export const judgeLoginSchema = z.object({ password: z.string().min(1).max(128) });
+export const adminSessionsSchema = z.object({
+  items: z.array(
+    z.object({ id: entityIdSchema, code: sessionCodeSchema, name: z.string(), status: z.string() }),
+  ),
+});
+export const auditSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      event_type: z.string(),
+      actor_type: z.string(),
+      actor_id: z.string().nullable(),
+      payload_json: z.string(),
+      created_at: z.string(),
+    }),
+  ),
 });

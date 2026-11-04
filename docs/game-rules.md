@@ -16,13 +16,13 @@ Community Mode có phase `VOTING`; Talent Mode chờ Admin/Judge chọn winner t
 
 ## Talent Mode
 
-Sau reveal, Admin hoặc Judge chọn một submission thuộc vòng hiện tại. Có thể chọn `null` cho vòng trống/skip. Server lưu winner, score events và chuyển sang `RESULT`. Audience không vote.
+Sau reveal, Admin hoặc Judge đề cử một submission thuộc vòng hiện tại. Có thể chọn `null` cho vòng trống/stop. Phiên manual chờ Admin xác nhận công bố trước khi server lưu winner, score events và chuyển sang `RESULT`. Audience không vote. Phiên automated cũ giữ hành vi công bố ngay khi chọn.
 
 ## Community Mode
 
 - Eligibility được snapshot khi đóng submission; disconnect không làm mất quyền vote hoặc dữ liệu đã gửi.
 - Mỗi voter một vote và không được vote submission của mình.
-- Deadline voting do server/DO alarm chốt.
+- Deadline voting do server/DO alarm chốt. Phiên manual tạo kết quả tạm, quay về `REVEAL` và chờ Admin xác nhận công bố; không phát winner/điểm sớm.
 - Winner là submission có nhiều vote hợp lệ nhất.
 - `EARLIEST_SUBMISSION` chọn lựa chọn cuối được gửi đến server sớm nhất khi hòa (thay meme cập nhật thời điểm này), sau đó dùng UUID để ổn định tuyệt đối.
 - `RANDOM` dùng lựa chọn deterministic từ round ID và candidate IDs, nên recovery cho cùng kết quả.
@@ -31,16 +31,18 @@ Sau reveal, Admin hoặc Judge chọn một submission thuộc vòng hiện tạ
 
 ## Điểm
 
-Điểm winner và participation lấy từ preset. Finalization chỉ chạy một lần, ghi `score_events` và cập nhật player score trong cùng D1 batch. Restart round xóa event của vòng và hoàn điểm; reset session xóa lịch sử vòng đang vận hành và đưa mọi điểm về 0.
+Điểm winner và participation lấy từ preset. Finalization chỉ chạy một lần, ghi `score_events` và cập nhật player score trong cùng D1 batch. Phiên manual chỉ restart vòng chưa công bố và không cho reset phá lịch sử. Điều chỉnh điểm phải có lý do, xác nhận và audit; không cho tổng điểm âm. Phiên automated cũ giữ restart/reset của Phase 04.
 
 ## Quyền điều khiển
 
 - Player: submit, vote, ping/ready.
 - Display: chỉ nhận snapshot.
-- Judge: chọn winner khi hợp lệ.
-- Admin: start, advance, pause, resume, skip, restart round, reset session và chọn winner.
+- Judge: đề cử winner khi hợp lệ; không được công bố hoặc sửa điểm.
+- Admin: start, advance, pause, resume, stop, reveal, mở/đóng voting, restart vòng chưa công bố, chọn/đổi đề cử có lý do, xác nhận công bố, điều chỉnh điểm có audit và điều khiển projector intermission.
 
 Mọi command sai role, phase hoặc deadline đều bị từ chối mà không tăng version.
+
+Phiên mới mặc định `manualControl: true`: question/reveal/result/leaderboard không tự advance; submission timeout khóa nhận bài nhưng chờ Admin reveal. Voting timeout tính kết quả tạm. Mode có thể đổi trước vòng tại lobby/question/leaderboard. Xem [admin-control.md](admin-control.md) để vận hành và dùng Dry Run.
 
 ## Kết nối và lỗi
 

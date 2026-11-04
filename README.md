@@ -63,7 +63,7 @@ pnpm test:e2e
 
 `pnpm build` tạo frontend tại `apps/web/dist` rồi chạy Wrangler dry-run để xác nhận một bundle triển khai gồm static assets và API. Khi đã tạo D1/R2 production và thay placeholder binding, dùng `pnpm deploy`.
 
-Các route demo trong Phase 01 là UI shell bằng dữ liệu mẫu. Xem [tiến độ](docs/progress.md) trước khi phát triển tiếp.
+Player, Display và Admin dùng API/WebSocket thật. Xem [tiến độ](docs/progress.md) trước khi phát triển tiếp.
 
 ## Content storage
 
@@ -71,7 +71,7 @@ Phase 03 stores structured content in D1 and image bytes in private R2. The defa
 
 ## Realtime engine
 
-Phase 04 provides session creation, join/reconnect, role tickets, and a hibernating WebSocket engine. Phase 05 connects `/play/:sessionCode`, and Phase 06 connects `/display/:sessionCode`. Admin gameplay workflows remain shells. Apply all migrations before using the API:
+Phase 04 provides session creation, join/reconnect, role tickets, and a hibernating WebSocket engine. Phases 05–07 connect Player, Display, Admin, and optional protected Judge interfaces. Apply all migrations before using the API:
 
 ```bash
 pnpm db:migrate:local
@@ -80,6 +80,8 @@ pnpm dev
 
 The Worker exposes `POST /api/admin/sessions`, `POST /api/sessions/:code/join`, reconnect/display ticket endpoints, and `/ws/:code`. WebSockets use subprotocols returned by the ticket APIs. See [realtime engine](docs/realtime-engine.md) for contracts, timing, and recovery behavior.
 
-Create a content pack in Content Studio, then create a session with the authenticated API. Open `/play/<returned-code>` to join. The room must be in `LOBBY` for a new player; returning players reconnect automatically. See [player experience](docs/player-experience.md) for the flow and exact real-backend E2E commands (`pnpm test:player`).
+Create a content pack in Content Studio, then sign in at `/admin/MT2026` to create a session and operate the event. Open `/play/<returned-code>` to join. The room must be in `LOBBY` for a new player; returning players reconnect automatically. See [player experience](docs/player-experience.md) for the flow and exact real-backend E2E commands (`pnpm test:player`).
 
 Open `/display/<returned-code>` on the external screen and press **F** for fullscreen. Rehearse in a desktop browser at 1280×720 or 1920×1080. See [presentation guide](docs/presentation-display.md) for QR reachability, extended-screen setup, and `pnpm test:display`.
+
+See [Admin operator guide](docs/admin-control.md) for manual rounds, separate Judge login, confirmed publication, reasoned overrides, score corrections, and browser-only Dry Run. New rooms require Admin confirmation before publishing either mode's result. Run `pnpm test:admin` after the isolated database setup in [testing](docs/testing.md).

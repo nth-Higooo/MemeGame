@@ -121,10 +121,16 @@ export class GameSession implements DurableObject {
     }
     const current = await this.loadState();
     if (parsed.data.type === "CLIENT_READY") {
+      if (!(await this.privilegeAllowed(attachment, current.sessionId))) {
+        socket.close(1008, "Authorization expired");
+        return;
+      }
       this.sendSnapshot(socket, current, attachment);
       return;
     }
     try {
+      if (!(await this.privilegeAllowed(attachment, current.sessionId)))
+        throw new EngineError("UNAUTHORIZED_COMMAND", "Quyền điều khiển đã hết hiệu lực.");
       const result = applyGameCommand(
         current,
         parsed.data.command,
@@ -222,6 +228,8 @@ export class GameSession implements DurableObject {
     if (ticket.role === "PLAYER" && !current.players.some((item) => item.id === ticket.subjectId)) {
       return Response.json({ error: "player_not_found" }, { status: 401 });
     }
+    if (!(await this.privilegeAllowed(ticket, current.sessionId)))
+      return Response.json({ error: "unauthorized" }, { status: 401 });
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
@@ -232,6 +240,8 @@ export class GameSession implements DurableObject {
       role: ticket.role,
       subjectId: ticket.subjectId,
       connectedAt: Date.now(),
+      ...(ticket.authExpiresAt ? { authExpiresAt: ticket.authExpiresAt } : {}),
+      ...(ticket.authSessionId ? { authSessionId: ticket.authSessionId } : {}),
     };
     server.serializeAttachment(attachment);
     this.sendSnapshot(server, current, attachment);
@@ -267,6 +277,33 @@ export class GameSession implements DurableObject {
     }
     if (durable) return durable;
     throw new Error("Game session is not initialized");
+  }
+
+  private async privilegeAllowed(
+    identity: {
+      role: string;
+      subjectId: string | null;
+      authExpiresAt?: number | undefined;
+      authSessionId?: string | undefined;
+    },
+    sessionId: string,
+  ) {
+    if (!["ADMIN", "JUDGE"].includes(identity.role)) return true;
+    if (identity.authExpiresAt !== undefined && identity.authExpiresAt < Date.now()) return false;
+    if (!identity.subjectId) return false;
+    if (identity.role === "ADMIN")
+      return Boolean(
+        await this.env.DB.prepare("SELECT id FROM admin_users WHERE id=? AND status='ACTIVE'")
+          .bind(identity.subjectId)
+          .first(),
+      );
+    return Boolean(
+      await this.env.DB.prepare(
+        "SELECT g.id FROM judge_grants g JOIN judge_sessions j ON j.grant_id=g.id WHERE g.id=? AND g.session_id=? AND g.active=1 AND j.token_hash=? AND j.expires_at>?",
+      )
+        .bind(identity.subjectId, sessionId, identity.authSessionId ?? "", Date.now())
+        .first(),
+    );
   }
 
   private async commit(
@@ -387,9 +424,35 @@ export class GameSession implements DurableObject {
       if (effect.type === "ROUND_FINALIZED") {
         this.appendScoreStatements(statements, next);
       }
+      if (effect.type === "SCORE_CORRECTED") {
+        statements.push(
+          this.env.DB.prepare("UPDATE players SET score=? WHERE id=?").bind(
+            next.players.find((player) => player.id === effect.playerId)!.score,
+            effect.playerId,
+          ),
+        );
+        statements.push(
+          this.env.DB.prepare(
+            "INSERT INTO score_events (id,session_id,round_id,player_id,points,reason,metadata_json) VALUES (?,?,?,?,?,'ADMIN_CORRECTION',?)",
+          ).bind(
+            crypto.randomUUID(),
+            next.sessionId,
+            next.round?.id ?? null,
+            effect.playerId,
+            effect.delta,
+            JSON.stringify({
+              reason: effect.reason,
+              actorId: actor.subjectId,
+              commandId: command?.commandId,
+            }),
+          ),
+        );
+      }
       if (effect.type === "ROUND_RESTARTED" && next.round) {
         statements.push(
-          this.env.DB.prepare("DELETE FROM score_events WHERE round_id=?").bind(next.round.id),
+          this.env.DB.prepare(
+            "DELETE FROM score_events WHERE round_id=? AND reason IN ('ROUND_WINNER','PARTICIPATION')",
+          ).bind(next.round.id),
           this.env.DB.prepare("DELETE FROM votes WHERE round_id=?").bind(next.round.id),
           this.env.DB.prepare("DELETE FROM submissions WHERE round_id=?").bind(next.round.id),
         );
@@ -426,7 +489,15 @@ export class GameSession implements DurableObject {
         command ? (actor.role === "PLAYER" ? "PLAYER" : "ADMIN") : "SYSTEM",
         actor.subjectId,
         command?.type ?? "DEADLINE_TRANSITION",
-        JSON.stringify({ from: previous.phase, to: next.phase, version: next.version }),
+        JSON.stringify({
+          actorRole: actor.role,
+          from: previous.phase,
+          to: next.phase,
+          version: next.version,
+          command,
+          previousScores: previous.players.map(({ id, score }) => ({ id, score })),
+          scores: next.players.map(({ id, score }) => ({ id, score })),
+        }),
         command?.commandId ?? null,
       ),
     );
@@ -472,7 +543,7 @@ export class GameSession implements DurableObject {
   }
 
   private async scheduleAlarm(state: PersistedGameState) {
-    if (state.phaseEndsAt !== null && !state.paused) {
+    if (state.phaseEndsAt !== null && !state.paused && !state.deadlineExpired) {
       await this.state.storage.setAlarm(state.phaseEndsAt);
     } else {
       await this.state.storage.deleteAlarm();
@@ -493,7 +564,13 @@ export class GameSession implements DurableObject {
     for (const socket of this.state.getWebSockets()) {
       if (socket.readyState !== WebSocket.OPEN) continue;
       const attachment = this.readAttachment(socket);
-      if (attachment) this.sendSnapshot(socket, state, attachment);
+      if (attachment) {
+        if (!(await this.privilegeAllowed(attachment, state.sessionId))) {
+          socket.close(1008, "Authorization expired");
+          continue;
+        }
+        this.sendSnapshot(socket, state, attachment);
+      }
     }
   }
 

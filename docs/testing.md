@@ -3,7 +3,7 @@
 ## Tầng kiểm thử
 
 - Unit (Vitest): Zod contract, phase transition, eligibility, scoring, tie-break, timer math.
-- Worker integration (`@cloudflare/vitest-pool-workers`): Hono route, D1 constraint, Durable Object command/idempotency, WebSocket reconnect.
+- Worker unit tests: Hono routes and cryptographic helpers. Real Worker/D1/R2/Durable Object integration runs through the browser E2E suites; no Workers Vitest pool is configured.
 - Component: tương tác form, focus, reduced motion và trạng thái lỗi.
 - E2E (Playwright): player mobile Chrome/Safari emulation, admin desktop, projector display.
 
@@ -51,3 +51,20 @@ Reducer tests cover the full phase graph, authoritative deadlines, empty rounds,
 ## Phase 06 presentation journeys
 
 `pnpm test:display` runs real-backend journeys at 1280×720, 1920×1080, and desktop WebKit. It covers QR/link rendering, fullscreen in Chromium, every display phase, early-media denial, display-command rejection, aggregate voting status, reduced-motion static frames, refresh/reconnect, and fallback sizing. Setup and rehearsal instructions are in [presentation-display.md](presentation-display.md). Screenshots live in ignored `artifacts/phase06`.
+
+## Phase 07 Admin / Judge journeys
+
+Prepare the isolated database once (or after adding migrations), from the repository root:
+
+```bash
+pnpm exec playwright install chromium webkit
+pnpm build
+pnpm --filter @misthy/worker exec wrangler d1 migrations apply DB --local --persist-to ../../.wrangler/player-e2e
+pnpm test:admin
+```
+
+The Admin config reuses the isolated player Worker on port 8790 and its test-only secrets. It provisions original GIFs/questions/presets via the secure CMS and runs complete Talent/Community events in desktop Chrome and 1024 px WebKit. No game network mocks are used. Coverage includes admin login/create/configuration, Judge-only nominations and revocation, pause/resume, projector intermission, anonymous projections, self/duplicate votes, provisional overrides, versioned confirmed publication, audited score corrections, completion, and Dry Run state/audit isolation. Screenshots are written to ignored `artifacts/phase07`.
+
+Use `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` for system Chrome if needed. On Windows, set `XDG_CONFIG_HOME` to a writable temporary directory when Wrangler cannot write its normal global config/log path. Test credentials are local fixtures, never production configuration. Do not run the three real-backend suites simultaneously: they share a port and disposable database.
+
+Reducer tests verify manual deadlines, no premature scoring, Judge publication rejection, stale versions, repeat finalization, and score corrections. Browser engine tests do not establish physical tablet/projector performance or 50-player load capacity.

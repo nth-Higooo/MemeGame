@@ -6,6 +6,7 @@ import { adminApi } from "./admin-api";
 import { GameSession } from "./game-session";
 import { verifyConnectionTicket } from "./realtime-auth";
 import { sessionApi } from "./session-api";
+import { judgeApi } from "./judge-api";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -33,6 +34,7 @@ app.get("/api/health", (c) =>
 );
 
 app.route("/api/admin", adminApi);
+app.route("/api/judge", judgeApi);
 app.route("/api/sessions", sessionApi);
 
 app.get("/ws/:sessionCode", async (c) => {

@@ -3,6 +3,8 @@ import {
   adminLoginSchema,
   contentImportSchema,
   createSessionSchema,
+  judgeCredentialSchema,
+  persistedGameStateSchema,
   gamePresetInputSchema,
   gamePresetUpdateSchema,
   memeAssetInputSchema,
@@ -156,7 +158,7 @@ adminApi.post("/auth/login", async (c) => {
   if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
   const ipHash = await digestText(c.req.header("CF-Connecting-IP") ?? "local");
   const recent = await c.env.DB.prepare(
-    "SELECT count(*) AS count FROM admin_login_attempts WHERE email=? AND ip_hash=? AND succeeded=0 AND created_at > datetime('now','-15 minutes')",
+    "SELECT count(*) AS count FROM admin_login_attempts WHERE email=? AND ip_hash=? AND succeeded=0 AND julianday(created_at)>julianday('now','-15 minutes')",
   )
     .bind(parsed.data.email, ipHash)
     .first<{ count: number }>();
@@ -738,9 +740,7 @@ adminApi.post("/content/import", async (c) => {
 adminApi.post("/sessions", async (c) => {
   const parsed = await readJson(c, createSessionSchema);
   if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
-  const input = parsed.data.code
-    ? { name: parsed.data.name, presetId: parsed.data.presetId, code: parsed.data.code }
-    : { name: parsed.data.name, presetId: parsed.data.presetId };
+  const input = parsed.data;
   try {
     const created = await createGameSession(c.env, input, c.get("admin").sub);
     if (!created) {
@@ -754,6 +754,7 @@ adminApi.post("/sessions", async (c) => {
       { id: created.sessionId, code: created.sessionCode },
       "ADMIN",
       c.get("admin").sub,
+      c.get("admin").exp,
     );
     return c.json(
       {
@@ -778,6 +779,56 @@ adminApi.post("/sessions", async (c) => {
   }
 });
 
+adminApi.get("/sessions", async (c) =>
+  c.json({
+    items: (
+      await c.env.DB.prepare(
+        "SELECT id,code,name,status FROM sessions WHERE status!='ARCHIVED' ORDER BY created_at DESC LIMIT 100",
+      ).all()
+    ).results,
+  }),
+);
+adminApi.get("/sessions/:sessionCode/audit", async (c) =>
+  c.json({
+    items: (
+      await c.env.DB.prepare(
+        "SELECT a.id,a.actor_type,a.actor_id,a.event_type,a.payload_json,a.created_at FROM audit_events a JOIN sessions s ON s.id=a.session_id WHERE s.code=? ORDER BY a.created_at DESC LIMIT 100",
+      )
+        .bind(c.req.param("sessionCode"))
+        .all()
+    ).results,
+  }),
+);
+adminApi.post("/sessions/:sessionCode/judge", async (c) => {
+  const parsed = await readJson(c, judgeCredentialSchema);
+  if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
+  const session = await c.env.DB.prepare("SELECT id,state_json FROM sessions WHERE code=?")
+    .bind(c.req.param("sessionCode"))
+    .first<{ id: string; state_json: string }>();
+  if (!session) return c.json({ message: "Không tìm thấy phòng." }, 404);
+  if (!persistedGameStateSchema.parse(JSON.parse(session.state_json)).manualControl)
+    return c.json({ message: "Tạo phiên thủ công để cấp quyền Talent." }, 400);
+  const id = crypto.randomUUID();
+  const password = await hashPassword(parsed.data.password);
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM judge_grants WHERE session_id=?").bind(session.id),
+    c.env.DB.prepare(
+      "INSERT INTO judge_grants(id,session_id,display_name,password_hash,password_salt,password_iterations) VALUES(?,?,?,?,?,?)",
+    ).bind(
+      id,
+      session.id,
+      parsed.data.displayName,
+      password.hash,
+      password.salt,
+      password.iterations,
+    ),
+    c.env.DB.prepare(
+      "INSERT INTO audit_events(id,session_id,actor_type,actor_id,event_type,payload_json) VALUES(?,?,'ADMIN',?,'JUDGE_CREDENTIAL_ROTATED','{}')",
+    ).bind(crypto.randomUUID(), session.id, c.get("admin").sub),
+  ]);
+  return c.json({ url: `/judge/${c.req.param("sessionCode")}` }, 201);
+});
+
 adminApi.post("/sessions/:sessionCode/ticket", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("sessionCode"));
   const parsed = await readJson(c, ticketRequestSchema);
@@ -787,6 +838,8 @@ adminApi.post("/sessions/:sessionCode/ticket", async (c) => {
       400,
     );
   }
+  if (parsed.data.role === "JUDGE")
+    return c.json({ message: "Talent cần đăng nhập bằng quyền riêng." }, 403);
   const session = await c.env.DB.prepare(
     "SELECT id,code FROM sessions WHERE code=? AND status!='ARCHIVED'",
   )
@@ -798,6 +851,7 @@ adminApi.post("/sessions/:sessionCode/ticket", async (c) => {
     session,
     parsed.data.role,
     parsed.data.role === "DISPLAY" ? null : c.get("admin").sub,
+    c.get("admin").exp,
   );
   return c.json({ connection: { url: `/ws/${session.code}`, protocols: ["misthy-v1", ticket] } });
 });

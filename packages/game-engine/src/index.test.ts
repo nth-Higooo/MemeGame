@@ -81,6 +81,242 @@ function submittingState() {
 }
 
 describe("realtime game engine", () => {
+  it("limits manual Community tie nominations to tied leaders before a reasoned override", () => {
+    const base = submittingState();
+    const thirdPlayerId = commandId();
+    const submissions = [ids.memeA, ids.memeB, ids.question].map((id, index) => ({
+      id,
+      playerId: [ids.playerA, ids.playerB, thirdPlayerId][index]!,
+      memeAssetId: ids.memeA,
+      commandId: commandId(),
+      submittedAt: index + 1,
+    }));
+    const current: PersistedGameState = {
+      ...base,
+      players: [...base.players, { id: thirdPlayerId, displayName: "Chi", score: 0, joinedAt: 3 }],
+      manualControl: true,
+      tieBreaker: "TALENT_DECIDES",
+      phase: "REVEAL",
+      phaseEndsAt: null,
+      round: {
+        ...base.round!,
+        submissions,
+        awaitingTieBreak: true,
+        votes: submissions.slice(0, 2).map((submission, index) => ({
+          id: commandId(),
+          commandId: commandId(),
+          voterPlayerId: index === 0 ? ids.playerB : ids.playerA,
+          submissionId: submission.id,
+          castAt: 4000,
+        })),
+      },
+    };
+    const judge = { role: "JUDGE" as const, subjectId: null };
+    expect(projectPublicState(current, "JUDGE", null, new Set(), 5000).tieCandidateIds).toEqual([
+      ids.memeA,
+      ids.memeB,
+    ]);
+    expect(projectPublicState(current, "DISPLAY", null, new Set(), 5000).tieCandidateIds).toEqual(
+      [],
+    );
+    expect(() =>
+      applyGameCommand(
+        current,
+        { type: "SELECT_WINNER", commandId: commandId(), submissionId: ids.question },
+        judge,
+        5000,
+      ),
+    ).toThrow(/đang hòa/);
+    const nominated = applyGameCommand(
+      current,
+      { type: "SELECT_WINNER", commandId: commandId(), submissionId: ids.memeB },
+      judge,
+      5000,
+    ).state;
+    expect(nominated.round?.awaitingTieBreak).toBe(false);
+    expect(nominated.round?.provisionalWinnerId).toBe(ids.memeB);
+    expect(nominated.round?.finalizedAt).toBeNull();
+    expect(nominated.players.every((player) => player.score === 0)).toBe(true);
+  });
+  it("closes the manual submission deadline without revealing until Admin requests it", () => {
+    let current = adminCommand({ ...state(), manualControl: true }, "START", 1000);
+    current = adminCommand(current, "ADVANCE", 2000);
+    current = applyDeadline(current, current.phaseEndsAt!).state;
+    expect(current.phase).toBe("SUBMITTING");
+    expect(current.deadlineExpired).toBe(true);
+    expect(applyDeadline(current, 999999).duplicate).toBe(true);
+    current = adminCommand(current, "PAUSE", 999999);
+    current = adminCommand(current, "RESUME", 1000000);
+    expect(() =>
+      applyGameCommand(
+        current,
+        { type: "SUBMIT_MEME", commandId: commandId(), memeAssetId: ids.memeA },
+        playerA,
+        1000001,
+      ),
+    ).toThrow(/sau hạn chót/);
+    current = adminCommand(current, "ADVANCE", 1000002);
+    expect(current.phase).toBe("REVEAL");
+  });
+  it("runs manual Talent nomination, confirmed publication, and audited correction", () => {
+    let current = adminCommand({ ...state("TALENT_MODE"), manualControl: true }, "START", 1000);
+    expect(current.phaseEndsAt).toBeNull();
+    current = adminCommand(current, "ADVANCE", 2000);
+    const submissionId = commandId();
+    current = applyGameCommand(
+      current,
+      { type: "SUBMIT_MEME", commandId: submissionId, memeAssetId: ids.memeA },
+      playerA,
+      3000,
+    ).state;
+    expect(() =>
+      applyGameCommand(
+        current,
+        { type: "SET_MODE", commandId: commandId(), mode: "COMMUNITY_MODE" },
+        admin,
+        3100,
+      ),
+    ).toThrow(/trước khi nhận/);
+    current = adminCommand(current, "ADVANCE", 4000);
+    current = applyGameCommand(
+      current,
+      { type: "SELECT_WINNER", commandId: commandId(), submissionId },
+      { role: "JUDGE", subjectId: null },
+      5000,
+    ).state;
+    expect(current.round?.resultPending).toBe(true);
+    expect(current.players[0]?.score).toBe(0);
+    const hidden = projectPublicState(current, "DISPLAY", null, new Set(), 5100);
+    expect(hidden.provisionalWinnerId).toBeNull();
+    expect(hidden.winnerSubmissionId).toBeNull();
+    const publish = {
+      type: "PUBLISH_RESULT",
+      confirmed: true,
+      commandId: commandId(),
+      expectedVersion: current.version,
+    } as const;
+    expect(() =>
+      applyGameCommand(current, publish, { role: "JUDGE", subjectId: null }, 5200),
+    ).toThrow(/Vai trò/);
+    current = applyGameCommand(current, publish, admin, 5300).state;
+    expect(current.phase).toBe("RESULT");
+    expect(current.players[0]?.score).toBe(100);
+    expect(applyGameCommand(current, publish, admin, 5400).duplicate).toBe(true);
+    expect(() => adminCommand(current, "RESTART_ROUND", 5500)).toThrow(/đã công bố/);
+    const correction = applyGameCommand(
+      current,
+      {
+        type: "ADJUST_SCORE",
+        commandId: commandId(),
+        expectedVersion: current.version,
+        confirmed: true,
+        playerId: ids.playerA,
+        delta: -10,
+        reason: "Sửa điểm theo luật",
+      },
+      admin,
+      5600,
+    );
+    expect(correction.state.players[0]?.score).toBe(90);
+    expect(correction.effects).toContainEqual({
+      type: "SCORE_CORRECTED",
+      playerId: ids.playerA,
+      delta: -10,
+      reason: "Sửa điểm theo luật",
+    });
+    current = adminCommand(correction.state, "ADVANCE", 6000);
+    current = adminCommand(current, "ADVANCE", 7000);
+    expect(current.phase).toBe("FINISHED");
+  });
+  it("holds Community results and accepts only confirmed, current-version overrides", () => {
+    let current = adminCommand({ ...state(), manualControl: true }, "START", 1000);
+    current = adminCommand(current, "ADVANCE", 2000);
+    const first = commandId(),
+      second = commandId();
+    current = applyGameCommand(
+      current,
+      { type: "SUBMIT_MEME", commandId: first, memeAssetId: ids.memeA },
+      playerA,
+      3000,
+    ).state;
+    current = applyGameCommand(
+      current,
+      { type: "SUBMIT_MEME", commandId: second, memeAssetId: ids.memeB },
+      playerB,
+      3100,
+    ).state;
+    current = adminCommand(current, "ADVANCE", 4000);
+    expect(current.phaseEndsAt).toBeNull();
+    current = adminCommand(current, "ADVANCE", 5000);
+    current = applyGameCommand(
+      current,
+      { type: "CAST_VOTE", commandId: commandId(), submissionId: second },
+      playerA,
+      5100,
+    ).state;
+    current = applyGameCommand(
+      current,
+      { type: "CAST_VOTE", commandId: commandId(), submissionId: first },
+      playerB,
+      5200,
+    ).state;
+    current = adminCommand(current, "ADVANCE", 6000);
+    expect(current.phase).toBe("REVEAL");
+    expect(current.round?.provisionalWinnerId).toBe(first);
+    expect(current.players.every((p) => p.score === 0)).toBe(true);
+    expect(() =>
+      applyGameCommand(
+        current,
+        {
+          type: "PUBLISH_RESULT",
+          commandId: commandId(),
+          confirmed: true,
+          expectedVersion: current.version - 1,
+        },
+        admin,
+        6100,
+      ),
+    ).toThrow(/đã thay đổi/);
+    current = applyGameCommand(
+      current,
+      {
+        type: "OVERRIDE_WINNER",
+        commandId: commandId(),
+        expectedVersion: current.version,
+        submissionId: second,
+        confirmed: true,
+        reason: "Talent quyết định hòa",
+      },
+      admin,
+      6200,
+    ).state;
+    current = applyGameCommand(
+      current,
+      {
+        type: "PUBLISH_RESULT",
+        commandId: commandId(),
+        expectedVersion: current.version,
+        confirmed: true,
+      },
+      admin,
+      6300,
+    ).state;
+    expect(current.round?.winnerSubmissionId).toBe(second);
+    expect(current.players[1]?.score).toBe(100);
+    expect(() =>
+      applyGameCommand(
+        current,
+        {
+          type: "PUBLISH_RESULT",
+          commandId: commandId(),
+          expectedVersion: current.version,
+          confirmed: true,
+        },
+        admin,
+        6400,
+      ),
+    ).toThrow(/Chưa có kết quả/);
+  });
   it("replaces an existing meme before the deadline with stable identity and idempotency", () => {
     const initial = submittingState();
     const first = applyGameCommand(

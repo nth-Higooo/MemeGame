@@ -73,7 +73,8 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
   const [notice, setNotice] = useState("");
   const root = useRef<HTMLElement>(null);
   const joinUrl = new URL(`/play/${sessionCode}`, location.origin).href;
-  const phase = snapshot?.phase;
+  const intermission = snapshot?.presentationMode === "INTERMISSION";
+  const phase = intermission ? "LOBBY" : snapshot?.phase;
   const publicMedia = Boolean(
     phase && ["REVEAL", "VOTING", "RESULT", "LEADERBOARD", "FINISHED"].includes(phase),
   );
@@ -134,7 +135,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
     };
   }, []);
   const seconds =
-    snapshot?.phaseEndsAt !== null && snapshot
+    snapshot?.phaseEndsAt !== null && snapshot && !intermission
       ? Math.max(0, Math.ceil((snapshot.phaseEndsAt - clock - offset) / 1000))
       : null;
   const ownRound = snapshot?.roundNumber ?? 0;
@@ -250,8 +251,8 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                 <div className="presentation-lobby">
                   <div>
                     <span className="presentation-eyebrow">{snapshot.name}</span>
-                    <h1>{copy.waiting}</h1>
-                    <p>{copy.waitingHint}</p>
+                    <h1>{intermission ? copy.paused : copy.waiting}</h1>
+                    <p>{intermission ? copy.footer : copy.waitingHint}</p>
                     <strong className="presentation-big-code">{sessionCode}</strong>
                     <p>{copy.players(snapshot.players.filter((item) => item.connected).length)}</p>
                     <div className="presentation-guests">

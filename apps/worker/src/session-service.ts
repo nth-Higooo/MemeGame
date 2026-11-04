@@ -1,5 +1,6 @@
 import {
   persistedGameStateSchema,
+  type CreateSessionInput,
   type PersistedGameState,
   type SessionRole,
 } from "@misthy/shared";
@@ -89,11 +90,7 @@ export async function buildInitialState(
   });
 }
 
-export async function createGameSession(
-  env: Env,
-  input: { name: string; presetId: string; code?: string },
-  adminId: string,
-) {
+export async function createGameSession(env: Env, input: CreateSessionInput, adminId: string) {
   const sessionId = crypto.randomUUID();
   const sessionCode = input.code ?? (await uniqueSessionCode(env.DB));
   const state = await buildInitialState(env.DB, {
@@ -103,6 +100,24 @@ export async function createGameSession(
     presetId: input.presetId,
   });
   if (!state) return null;
+  state.manualControl = input.manualControl;
+  if (input.assetIds) {
+    for (const question of state.questions)
+      question.memeAssetIds = question.memeAssetIds.filter((id) => input.assetIds!.includes(id));
+    if (state.questions.some((question) => question.memeAssetIds.length === 0)) return null;
+  }
+  if (input.settings) {
+    state.mode = input.settings.mode;
+    state.scoring = {
+      winnerPoints: input.settings.winnerPoints,
+      participationPoints: input.settings.participationPoints,
+    };
+    state.tieBreaker = input.settings.tieBreaker;
+    for (const question of state.questions) {
+      question.submissionDurationSeconds = input.settings.submissionDurationSeconds;
+      question.votingDurationSeconds = input.settings.votingDurationSeconds;
+    }
+  }
   await env.DB.prepare(
     `INSERT INTO sessions (id,code,name,default_mode,status,preset_id,created_by,state_version,state_json)
      VALUES (?,?,?,?, 'LOBBY',?,?,?,?)`,
@@ -135,9 +150,10 @@ export async function issueRoleTicket(
   session: { id: string; code: string },
   role: SessionRole,
   subjectId: string | null,
+  authExpiresAt = Date.now() + 8 * 3600000,
 ) {
   return issueConnectionTicket(
-    { sessionId: session.id, sessionCode: session.code, role, subjectId },
+    { sessionId: session.id, sessionCode: session.code, role, subjectId, authExpiresAt },
     env.ADMIN_SESSION_SECRET,
   );
 }

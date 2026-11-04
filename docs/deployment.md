@@ -40,3 +40,7 @@ Bootstrap the first owner at `/admin/<SESSION_CODE>/content`, or call `POST /api
 R2 is private in Phase 03; authenticated admins stream previews through the Worker. Archiving is the normal removal path. Hard delete is restricted to unreferenced assets and removes D1 metadata and the R2 object. A failed D1 insert after upload triggers compensating R2 deletion.
 
 Rollback application code using Cloudflare deployment versions. Fix D1 schema problems with a reviewed forward migration.
+
+## Phase 07 upgrade
+
+Apply migration `0004_talent_judging.sql` through the migration commands above before deploying the new Worker. No new cloud binding or secret is required. Existing automated sessions remain compatible; create a new manual session in the Admin dashboard for confirmed publication and protected Judge access. Judge credentials are provisioned per room through the authenticated dashboard, never through frontend environment variables. Use HTTPS for production cookie security and share only clean player/display/Judge URLs. See [operator guide](admin-control.md).

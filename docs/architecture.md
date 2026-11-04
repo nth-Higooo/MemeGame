@@ -9,7 +9,7 @@ Hệ thống ưu tiên độ trễ thấp, khôi phục kết nối và chi phí
 ```text
 apps/web       React UI: play, display, admin
 apps/worker    Hono API + GameSession Durable Object
-packages/game-engine  Mini-game interfaces; chưa có gameplay implementation
+packages/game-engine  Pure state machine, scoring, role projections, rehearsal
 packages/shared  Zod schemas và TypeScript contracts
 ```
 
@@ -37,6 +37,8 @@ Luồng chính:
 - Rollback nghiệp vụ không xóa lịch sử: admin tạo command bù hoặc khôi phục checkpoint, tăng revision và phát snapshot mới.
 
 Phase 04 lưu snapshot versioned trong cả Durable Object storage và `sessions.state_json`. Khi thức dậy sau hibernation, snapshot D1 có version cao hơn sẽ sửa lại DO storage. Metadata socket được `serializeAttachment` để giữ identity qua hibernation. Chi tiết tại [realtime-engine.md](realtime-engine.md).
+
+Phase 07 adds manual session orchestration: timed input windows lead to an unpublished proposal; only an explicit Admin confirmation persists final scoring. The browser-only Dry Run uses the same reducer without Worker writes. Admin/Judge authentication is separate; privilege checks survive socket hibernation. See [admin-control.md](admin-control.md).
 
 ## Bảo mật
 

@@ -88,7 +88,7 @@ async function createRoom(request: APIRequestContext, mode = "TALENT_MODE") {
   const preset = ((await p.json()) as { item: { id: string } }).item.id;
   const s = await request.post("/api/admin/sessions", {
     headers,
-    data: { name: "MisThy Birthday Party", presetId: preset },
+    data: { name: "MisThy Birthday Party", presetId: preset, manualControl: false },
   });
   expect(s.ok()).toBe(true);
   const session = (await s.json()) as {

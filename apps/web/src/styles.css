@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+.control-live {
+  color: var(--ink-strong);
+}
+.control-live button {
+  min-height: 44px;
+}
+.control-live .surface-card {
+  background: var(--surface-frosted);
+}
+.control-meme {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  background: var(--surface-solid);
+  border-radius: 14px;
+}
+
 /* Phase 06: projector stage; content slots retain their dimensions during load. */
 .presentation-shell {
   position: relative;

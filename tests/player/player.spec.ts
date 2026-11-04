@@ -92,7 +92,7 @@ async function pack(
   const preset = (await presetResponse.json()) as { item: { id: string } };
   const sessionResponse = await request.post("/api/admin/sessions", {
     headers,
-    data: { name: "Player test party", presetId: preset.item.id },
+    data: { name: "Player test party", presetId: preset.item.id, manualControl: false },
   });
   expect(sessionResponse.ok()).toBe(true);
   const session = (await sessionResponse.json()) as {

@@ -5,7 +5,7 @@
 - Người chơi dùng `/play/:sessionCode` trên Safari/Chrome mobile để vào phòng, duyệt meme, gửi lựa chọn và vote khi hợp lệ.
 - Màn hình `/display/:sessionCode` trình chiếu 16:9, không lộ danh tính submission trước khi kết quả cho phép.
 - Admin dùng `/admin/:sessionCode` trên desktop/tablet để tạo/điều khiển vòng, pause/resume, ghi nhận talent winner và recovery.
-- `/judge/:sessionCode` là tùy chọn, chưa thuộc MVP.
+- `/judge/:sessionCode` là tùy chọn, đăng nhập riêng và chỉ đề cử winner; Admin xác nhận công bố.
 
 Ngôn ngữ mặc định là tiếng Việt. Copy sẽ được chuyển vào locale dictionary trước khi có ngôn ngữ thứ hai.
 
@@ -41,4 +41,4 @@ Chat công khai, upload tự do từ người chơi, thanh toán, multi-region d
 - Phase 04 — realtime engine: sessions, join/reconnect, phase machine, alarms, submit/vote, Talent decisions, scoring, and recovery.
 - Phase 05 — Player experience connected to real APIs, media, identity, and realtime state.
 - Phase 06 — Presentation Display with read-only realtime state, QR join, fullscreen, and external-screen rehearsal.
-- Phase 07 — hardening, accessibility, observability, E2E, production deploy.
+- Phase 07 — secure Admin control, protected Talent judging, confirmed results, audited corrections, projector control, isolated Dry Run, and both-mode E2E.

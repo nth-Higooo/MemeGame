@@ -14,10 +14,17 @@ export type EngineEffect =
   | { type: "ROUND_FINALIZED" }
   | { type: "ROUND_RESTARTED" }
   | { type: "SESSION_RESET" }
-  | { type: "STATE_CHANGED" };
+  | { type: "STATE_CHANGED" }
+  | ScoreCorrection;
+export type ScoreCorrection = {
+  type: "SCORE_CORRECTED";
+  playerId: string;
+  delta: number;
+  reason: string;
+};
 export type EngineResult = {
   state: PersistedGameState;
-  effects: EngineEffect[];
+  effects: (EngineEffect | ScoreCorrection)[];
   duplicate: boolean;
 };
 
@@ -55,6 +62,7 @@ function setPhase(
     phaseStartedAt: now,
     phaseEndsAt: durationMs === null ? null : now + durationMs,
     paused: null,
+    deadlineExpired: false,
     version: state.version + 1,
   };
 }
@@ -81,7 +89,7 @@ function startRound(state: PersistedGameState, now: number, idFactory: () => str
     },
     "QUESTION",
     now,
-    PHASE_DURATION_MS.QUESTION!,
+    state.manualControl ? null : PHASE_DURATION_MS.QUESTION!,
   );
 }
 
@@ -89,6 +97,15 @@ function deterministicRandomWinner(ids: string[], seed: string) {
   let hash = 2_166_136_261;
   for (const character of seed) hash = Math.imul(hash ^ character.charCodeAt(0), 16_777_619);
   return [...ids].sort()[Math.abs(hash) % ids.length] ?? null;
+}
+
+function tiedCandidateIds(round: NonNullable<PersistedGameState["round"]>) {
+  const totals = round.submissions.map((submission) => ({
+    id: submission.id,
+    count: round.votes.filter((vote) => vote.submissionId === submission.id).length,
+  }));
+  const highest = Math.max(...totals.map((item) => item.count));
+  return totals.filter((item) => item.count === highest).map((item) => item.id);
 }
 
 function scoreFinalizedRound(state: PersistedGameState, winnerSubmissionId: string | null) {
@@ -104,7 +121,12 @@ function scoreFinalizedRound(state: PersistedGameState, winnerSubmissionId: stri
   }));
 }
 
-function finalizeRound(state: PersistedGameState, now: number, selectedWinnerId?: string | null) {
+function finalizeRound(
+  state: PersistedGameState,
+  now: number,
+  selectedWinnerId?: string | null,
+  publish = false,
+) {
   const round = state.round;
   if (!round) throw new EngineError("NO_ACTIVE_ROUND", "Không có vòng đang hoạt động.");
   if (round.finalizedAt !== null) return state;
@@ -139,15 +161,37 @@ function finalizeRound(state: PersistedGameState, now: number, selectedWinnerId?
   if (winnerSubmissionId && !round.submissions.some((item) => item.id === winnerSubmissionId)) {
     throw new EngineError("INVALID_WINNER", "Submission thắng không thuộc vòng hiện tại.");
   }
+  if (state.manualControl && !publish)
+    return setPhase(
+      {
+        ...state,
+        round: {
+          ...round,
+          provisionalWinnerId: winnerSubmissionId,
+          resultPending: true,
+          awaitingTieBreak: false,
+        },
+      },
+      "REVEAL",
+      now,
+      null,
+    );
   const withWinner = {
     ...state,
-    round: { ...round, awaitingTieBreak: false, winnerSubmissionId, finalizedAt: now },
+    round: {
+      ...round,
+      awaitingTieBreak: false,
+      winnerSubmissionId,
+      finalizedAt: now,
+      resultPending: false,
+      provisionalWinnerId: null,
+    },
   };
   return setPhase(
     { ...withWinner, players: scoreFinalizedRound(withWinner, winnerSubmissionId) },
     "RESULT",
     now,
-    PHASE_DURATION_MS.RESULT!,
+    state.manualControl ? null : PHASE_DURATION_MS.RESULT!,
   );
 }
 
@@ -171,9 +215,11 @@ function advance(state: PersistedGameState, now: number, idFactory: () => string
         },
         "REVEAL",
         now,
-        state.mode === "COMMUNITY_MODE" ? PHASE_DURATION_MS.REVEAL! : null,
+        !state.manualControl && state.mode === "COMMUNITY_MODE" ? PHASE_DURATION_MS.REVEAL! : null,
       );
     case "REVEAL":
+      if (state.manualControl && state.round?.resultPending)
+        throw new EngineError("CONFIRM_REQUIRED", "Hãy xác nhận và công bố kết quả.");
       if (state.round?.awaitingTieBreak) return finalizeRound(state, now, null);
       return state.mode === "TALENT_MODE"
         ? finalizeRound(state, now, null)
@@ -181,7 +227,12 @@ function advance(state: PersistedGameState, now: number, idFactory: () => string
     case "VOTING":
       return finalizeRound(state, now);
     case "RESULT":
-      return setPhase(state, "LEADERBOARD", now, PHASE_DURATION_MS.LEADERBOARD!);
+      return setPhase(
+        state,
+        "LEADERBOARD",
+        now,
+        state.manualControl ? null : PHASE_DURATION_MS.LEADERBOARD!,
+      );
     case "LEADERBOARD":
       return startRound(state, now, idFactory);
     case "FINISHED":
@@ -206,8 +257,10 @@ export function applyGameCommand(
   if (state.processedCommandIds.includes(command.commandId)) {
     return { state, effects: [], duplicate: true };
   }
+  if (command.expectedVersion !== undefined && command.expectedVersion !== state.version)
+    throw new EngineError("STALE_STATE", "Trạng thái đã thay đổi. Vui lòng kiểm tra lại.");
   let next = state;
-  const effects: EngineEffect[] = [];
+  const effects: (EngineEffect | ScoreCorrection)[] = [];
 
   if (command.type === "SUBMIT_MEME" || command.type === "REPLACE_MEME") {
     requireRole(actor, ["PLAYER"]);
@@ -215,7 +268,7 @@ export function applyGameCommand(
     if (state.phase !== "SUBMITTING" || state.paused) {
       throw new EngineError("SUBMISSION_CLOSED", "Đã hết thời gian gửi meme.");
     }
-    if (state.phaseEndsAt !== null && now >= state.phaseEndsAt) {
+    if (state.deadlineExpired || (state.phaseEndsAt !== null && now >= state.phaseEndsAt)) {
       throw new EngineError("SUBMISSION_LATE", "Submission đến sau hạn chót.");
     }
     const round = state.round!;
@@ -286,6 +339,56 @@ export function applyGameCommand(
       },
     };
     effects.push({ type: "VOTE_ACCEPTED", voteId: command.commandId });
+  } else if (command.type === "PUBLISH_RESULT") {
+    requireRole(actor, ["ADMIN"]);
+    if (state.phase !== "REVEAL" || !state.round?.resultPending || state.paused)
+      throw new EngineError("NO_PROVISIONAL_RESULT", "Chưa có kết quả để công bố.");
+    next = finalizeRound(state, now, state.round.provisionalWinnerId ?? null, true);
+    effects.push({ type: "ROUND_FINALIZED" });
+  } else if (command.type === "OVERRIDE_WINNER") {
+    requireRole(actor, ["ADMIN"]);
+    if (
+      !state.manualControl ||
+      state.phase !== "REVEAL" ||
+      !state.round?.resultPending ||
+      state.paused
+    )
+      throw new EngineError("OVERRIDE_CLOSED", "Chỉ được sửa kết quả tạm trước khi công bố.");
+    next = finalizeRound(state, now, command.submissionId);
+    effects.push({ type: "STATE_CHANGED" });
+  } else if (command.type === "ADJUST_SCORE") {
+    requireRole(actor, ["ADMIN"]);
+    if (!state.manualControl)
+      throw new EngineError(
+        "MANUAL_SESSION_REQUIRED",
+        "Tạo phiên thủ công để điều chỉnh có kiểm toán.",
+      );
+    const player = state.players.find((item) => item.id === command.playerId);
+    if (!player || player.score + command.delta < 0 || player.score + command.delta > 1000000000)
+      throw new EngineError("INVALID_SCORE", "Điểm sau điều chỉnh không hợp lệ.");
+    next = {
+      ...state,
+      version: state.version + 1,
+      players: state.players.map((item) =>
+        item.id === command.playerId ? { ...item, score: item.score + command.delta } : item,
+      ),
+    };
+    effects.push({
+      type: "SCORE_CORRECTED",
+      playerId: command.playerId,
+      delta: command.delta,
+      reason: command.reason,
+    });
+  } else if (command.type === "SET_SCREEN") {
+    requireRole(actor, ["ADMIN"]);
+    next = { ...state, presentationMode: command.screen, version: state.version + 1 };
+    effects.push({ type: "STATE_CHANGED" });
+  } else if (command.type === "SET_MODE") {
+    requireRole(actor, ["ADMIN"]);
+    if (!["LOBBY", "QUESTION", "LEADERBOARD"].includes(state.phase))
+      throw new EngineError("MODE_LOCKED", "Chỉ được đổi chế độ trước khi nhận meme.");
+    next = { ...state, mode: command.mode, version: state.version + 1 };
+    effects.push({ type: "STATE_CHANGED" });
   } else if (command.type === "SELECT_WINNER") {
     requireRole(actor, ["ADMIN", "JUDGE"]);
     if (
@@ -295,11 +398,25 @@ export function applyGameCommand(
     ) {
       throw new EngineError("WINNER_SELECTION_CLOSED", "Không thể chọn winner ở phase hiện tại.");
     }
+    if (state.manualControl && state.round?.resultPending)
+      throw new EngineError("OVERRIDE_REQUIRED", "Đã có lựa chọn tạm. Admin cần xác nhận ghi đè.");
+    if (state.manualControl && state.mode === "COMMUNITY_MODE" && state.round?.awaitingTieBreak) {
+      if (!command.submissionId || !tiedCandidateIds(state.round).includes(command.submissionId))
+        throw new EngineError("TIED_CANDIDATE_REQUIRED", "Chỉ được chọn trong các meme đang hòa.");
+    }
     next = finalizeRound(state, now, command.submissionId);
-    effects.push({ type: "ROUND_FINALIZED" });
+    effects.push(next.phase === "RESULT" ? { type: "ROUND_FINALIZED" } : { type: "STATE_CHANGED" });
   } else {
     requireRole(actor, ["ADMIN"]);
     switch (command.action) {
+      case "STOP_ROUND":
+        if (!state.round || state.round.finalizedAt !== null || state.paused)
+          throw new EngineError("STOP_CLOSED", "Không thể dừng vòng ở trạng thái này.");
+        next = finalizeRound(state, now, null);
+        effects.push(
+          next.phase === "RESULT" ? { type: "ROUND_FINALIZED" } : { type: "STATE_CHANGED" },
+        );
+        break;
       case "START":
         if (state.phase !== "LOBBY") {
           throw new EngineError("INVALID_TRANSITION", "Chỉ có thể bắt đầu từ lobby.");
@@ -346,6 +463,11 @@ export function applyGameCommand(
         if (!state.round) {
           throw new EngineError("NO_ACTIVE_ROUND", "Không có vòng để khởi động lại.");
         }
+        if (state.manualControl && state.round.finalizedAt !== null)
+          throw new EngineError(
+            "PUBLISHED_ROUND",
+            "Vòng đã công bố. Hãy dùng điều chỉnh điểm có kiểm toán.",
+          );
         const winner = state.round.submissions.find(
           (item) => item.id === state.round!.winnerSubmissionId,
         );
@@ -373,16 +495,20 @@ export function applyGameCommand(
               awaitingTieBreak: false,
               winnerSubmissionId: null,
               finalizedAt: null,
+              provisionalWinnerId: null,
+              resultPending: false,
             },
           },
           "QUESTION",
           now,
-          PHASE_DURATION_MS.QUESTION!,
+          state.manualControl ? null : PHASE_DURATION_MS.QUESTION!,
         );
         effects.push({ type: "ROUND_RESTARTED" });
         break;
       }
       case "RESET_SESSION":
+        if (state.manualControl)
+          throw new EngineError("RESET_CLOSED", "Tạo phiên mới để giữ lịch sử sự kiện đã chạy.");
         next = {
           ...state,
           version: state.version + 1,
@@ -406,9 +532,20 @@ export function applyDeadline(
   now: number,
   idFactory: () => string = () => crypto.randomUUID(),
 ): EngineResult {
-  if (state.paused || state.phaseEndsAt === null || now < state.phaseEndsAt) {
+  if (
+    state.paused ||
+    state.deadlineExpired ||
+    state.phaseEndsAt === null ||
+    now < state.phaseEndsAt
+  ) {
     return { state, effects: [], duplicate: true };
   }
+  if (state.manualControl && state.phase === "SUBMITTING")
+    return {
+      state: { ...state, deadlineExpired: true, version: state.version + 1 },
+      effects: [{ type: "STATE_CHANGED" }],
+      duplicate: false,
+    };
   const next = advance(state, now, idFactory);
   return {
     state: next,
@@ -437,9 +574,9 @@ export function projectPublicState(
 ): PublicSessionState {
   const round = state.round;
   const question = round ? state.questions[round.questionIndex]! : null;
-  const showSubmissions = ["REVEAL", "VOTING", "RESULT", "LEADERBOARD", "FINISHED"].includes(
-    state.phase,
-  );
+  const showSubmissions =
+    role === "ADMIN" ||
+    ["REVEAL", "VOTING", "RESULT", "LEADERBOARD", "FINISHED"].includes(state.phase);
   const showAuthors =
     role === "ADMIN" ||
     role === "JUDGE" ||
@@ -495,5 +632,16 @@ export function projectPublicState(
       !round.votes.some((item) => item.voterPlayerId === viewerId),
     ),
     winnerSubmissionId: round?.winnerSubmissionId ?? null,
+    provisionalWinnerId:
+      role === "ADMIN" || role === "JUDGE" ? (round?.provisionalWinnerId ?? null) : null,
+    resultPending: role === "ADMIN" || role === "JUDGE" ? Boolean(round?.resultPending) : false,
+    awaitingTieBreak:
+      role === "ADMIN" || role === "JUDGE" ? Boolean(round?.awaitingTieBreak) : false,
+    tieCandidateIds:
+      (role === "ADMIN" || role === "JUDGE") && round?.awaitingTieBreak
+        ? tiedCandidateIds(round)
+        : [],
+    manualControl: Boolean(state.manualControl),
+    presentationMode: state.presentationMode ?? "AUTO",
   };
 }

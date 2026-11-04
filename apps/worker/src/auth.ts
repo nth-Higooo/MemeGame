@@ -114,6 +114,11 @@ export const requireAdmin: MiddlewareHandler<{ Bindings: Env; Variables: Variabl
   const session = token ? await verifySessionToken(token, c.env.ADMIN_SESSION_SECRET) : null;
   if (!session)
     return c.json({ error: "unauthorized", message: "Vui lòng đăng nhập quản trị." }, 401);
+  const active = await c.env.DB.prepare("SELECT id FROM admin_users WHERE id=? AND status='ACTIVE'")
+    .bind(session.sub)
+    .first();
+  if (!active)
+    return c.json({ error: "unauthorized", message: "Quyền quản trị đã hết hiệu lực." }, 401);
 
   if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
     if (c.req.header("X-Requested-With") !== "misthy-admin") {
