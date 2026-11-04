@@ -106,12 +106,13 @@ Then run sequentially from the repository root, after the R2 gate is complete:
 
 ```bash
 pnpm production:preflight
+pnpm exec wrangler d1 migrations list DB --remote --config apps/worker/wrangler.production.json
 pnpm production:build
 pnpm production:migrate
 pnpm production:deploy
 ```
 
-Migration is an explicit step and follows a backup. Deployment scripts require explicit free-plan and already-enabled-R2 acknowledgements and check existing bindings before applying migrations or publishing. The Worker config declares SQLite Durable Object storage and `/api`, `/api/*`, `/ws`, `/ws/*` worker-first routing. SPA navigation falls back to `index.html`; API and WebSocket paths are not served as HTML.
+The migration-list command is read-only. Review it against the database's current schema before continuing: this account's D1 is existing and contains data. If migrations appear unapplied despite the existing tables, stop and inspect migration history; do not apply them blindly. Create and verify an encrypted backup using [backup and restore](backup-and-restore.md) before any migration. Deployment scripts require explicit free-plan and already-enabled-R2 acknowledgements and check existing bindings before applying migrations or publishing. The Worker config declares SQLite Durable Object storage and `/api`, `/api/*`, `/ws`, `/ws/*` worker-first routing. SPA navigation falls back to `index.html`; API and WebSocket paths are not served as HTML.
 
 ### Set Admin secrets on the first deployment
 
