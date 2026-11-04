@@ -25,7 +25,9 @@ test("player shell is usable on mobile", async ({ page }) => {
 
 test("display and admin shells resolve session routes", async ({ page }) => {
   await page.goto("/display/MT2026");
-  await expect(page.getByText("28 người chơi")).toBeVisible();
+  await expect(page.getByTestId("presentation")).toBeVisible();
+  await expect(page.locator(".presentation-room")).toHaveText("MT2026");
+  await expect(page.locator(".presentation-room")).toBeVisible();
   await page.goto("/admin/MT2026");
   await expect(page.getByRole("heading", { name: /Chào buổi tiệc/i })).toBeVisible();
 });

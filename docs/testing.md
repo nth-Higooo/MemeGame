@@ -47,3 +47,7 @@ Reducer tests cover the full phase graph, authoritative deadlines, empty rounds,
 ## Phase 05 player journeys
 
 `pnpm test:player` uses `playwright.player.config.ts` with Android Chrome and iPhone WebKit projects against a real local Worker and isolated `.wrangler/player-e2e` database. The suite provisions its content through secure CMS APIs; no game mocks or route interception are used. See [player-experience.md](player-experience.md) for database preparation. Original tiny GIF fixtures contain no third-party assets. Coverage includes both modes, join/restore, multiple tabs/reconnect, replacement, protected media, own-vote prevention, vote lock, result/summary, automatic timeout, and invalid rooms. Browser engine emulation does not replace physical-device testing.
+
+## Phase 06 presentation journeys
+
+`pnpm test:display` runs real-backend journeys at 1280×720, 1920×1080, and desktop WebKit. It covers QR/link rendering, fullscreen in Chromium, every display phase, early-media denial, display-command rejection, aggregate voting status, reduced-motion static frames, refresh/reconnect, and fallback sizing. Setup and rehearsal instructions are in [presentation-display.md](presentation-display.md). Screenshots live in ignored `artifacts/phase06`.

@@ -40,5 +40,5 @@ Chat công khai, upload tự do từ người chơi, thanh toán, multi-region d
 - Phase 03 — database/content management: secure admin auth, D1 models, R2 uploads, CMS, and JSON transfer.
 - Phase 04 — realtime engine: sessions, join/reconnect, phase machine, alarms, submit/vote, Talent decisions, scoring, and recovery.
 - Phase 05 — Player experience connected to real APIs, media, identity, and realtime state.
-- Phase 06 — Display/Admin live workflows, production content curation, and event operations.
+- Phase 06 — Presentation Display with read-only realtime state, QR join, fullscreen, and external-screen rehearsal.
 - Phase 07 — hardening, accessibility, observability, E2E, production deploy.
