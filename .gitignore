@@ -12,3 +12,6 @@ artifacts/
 .DS_Store
 Thumbs.db
 worker-configuration.d.ts
+backups/
+*.misthy.enc
+.production-secrets*

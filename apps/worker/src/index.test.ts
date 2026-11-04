@@ -20,4 +20,9 @@ describe("worker routes", () => {
     const response = await app.request("http://localhost/api/missing");
     expect(response.status).toBe(404);
   });
+  it.each(["/api", "/ws"])("keeps the %s root out of SPA fallback", async (path) => {
+    const response = await app.request(`http://localhost${path}`);
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+  });
 });

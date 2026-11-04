@@ -297,7 +297,10 @@ export class GameSession implements DurableObject {
     const ticket = token
       ? await verifyConnectionTicket(token, this.env.ADMIN_SESSION_SECRET)
       : null;
-    const current = await this.loadState();
+    if (!ticket) return Response.json({ error: "invalid_connection_ticket" }, { status: 401 });
+    // After an intentional D1 restore into a NEW namespace, a signed ticket supplies
+    // the recovery identity. No public initialize/restore endpoint is exposed.
+    const current = await this.loadState(ticket.sessionId, ticket.sessionCode);
     if (
       !ticket ||
       ticket.sessionId !== current.sessionId ||
@@ -349,11 +352,16 @@ export class GameSession implements DurableObject {
     });
   }
 
-  private async loadState(): Promise<PersistedGameState> {
+  private async loadState(
+    recoverySessionId?: string,
+    recoveryCode?: string,
+  ): Promise<PersistedGameState> {
     if (this.cachedState) return this.cachedState;
     const stored = persistedGameStateSchema.safeParse(await this.state.storage.get(STATE_KEY));
     const storedSessionId = await this.state.storage.get<string>(SESSION_ID_KEY);
-    const sessionId = stored.success ? stored.data.sessionId : storedSessionId;
+    const sessionId = stored.success
+      ? stored.data.sessionId
+      : (storedSessionId ?? recoverySessionId);
     const durable = stored.success ? stored.data : null;
     const d1 = sessionId
       ? await this.env.DB.prepare("SELECT state_json FROM sessions WHERE id=?")
@@ -364,12 +372,21 @@ export class GameSession implements DurableObject {
     if (d1?.state_json) {
       try {
         database = persistedGameStateSchema.safeParse(JSON.parse(d1.state_json));
+        if (
+          database.success &&
+          (database.data.sessionId !== sessionId ||
+            (recoveryCode && database.data.sessionCode !== recoveryCode))
+        )
+          throw new Error("Recovery identity mismatch");
       } catch {
         database = null;
       }
     }
     if (database?.success && (!durable || database.data.version > durable.version)) {
-      await this.state.storage.put(STATE_KEY, database.data);
+      await this.state.storage.put({
+        [STATE_KEY]: database.data,
+        [SESSION_ID_KEY]: database.data.sessionId,
+      });
       await this.scheduleAlarm(database.data);
       logEvent({
         event: "state_recovered",

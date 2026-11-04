@@ -1,0 +1,62 @@
+name: Deploy production
+on:
+  workflow_dispatch:
+    inputs:
+      free_plan_and_existing_r2_verified:
+        description: Workers Free and an already authorized R2 subscription verified; no billing activation allowed
+        type: boolean
+        required: true
+        default: false
+      backup_or_empty_database_verified:
+        description: Encrypted backup verified, or this is the first deployment to an empty database
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: misthy-production-release
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+      CLOUDFLARE_FREE_PLAN_CONFIRMED: "true"
+      CLOUDFLARE_R2_ALREADY_ENABLED: "true"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.20.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm audit --prod --audit-level moderate
+      - run: pnpm production:configure
+      - run: pnpm production:preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: pnpm production:build
+      - run: pnpm production:migrate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: pnpm production:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Verify previously recorded origin
+        if: vars.PRODUCTION_ORIGIN != ''
+        env:
+          PRODUCTION_ORIGIN: ${{ vars.PRODUCTION_ORIGIN }}
+        run: node scripts/verify-deployment.mjs "$PRODUCTION_ORIGIN"
+      # Provision the two application secrets interactively outside Actions.
+      # First-deploy acceptance (including actual event writes) is a separate explicit operator step.

@@ -89,6 +89,8 @@ app.get("/ws/:sessionCode", async (c) => {
   return c.env.GAME_SESSIONS.get(id).fetch(c.req.raw);
 });
 
+app.all("/api", (c) => c.json({ error: "not_found" }, 404));
+app.all("/ws", (c) => c.json({ error: "not_found" }, 404));
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/ws/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));

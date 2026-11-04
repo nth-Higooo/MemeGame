@@ -1,0 +1,35 @@
+name: Validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.20.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm production:build
+      - run: pnpm audit --prod --audit-level moderate
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec wrangler d1 migrations apply DB --local --config apps/worker/wrangler.jsonc --persist-to .wrangler/player-e2e
+      - run: pnpm test:player && pnpm test:display && pnpm test:admin && pnpm test:e2e
+      # The 30/50-renderer load suite remains an explicit local/manual QA run.
+      # No production secrets, cloud writes, or backup artifacts are used here.

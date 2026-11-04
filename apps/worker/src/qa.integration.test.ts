@@ -26,6 +26,42 @@ async function action(f: Fixture, value: string) {
 }
 
 describe("Phase 08 storage, security and recovery integration", () => {
+  it("recovers a restored D1 snapshot in an empty namespace only with a valid signed session ticket", async () => {
+    const f = await harness();
+    try {
+      const joined = await join(f, "Restored player");
+      await action(f, "START");
+      const expected = f.snapshot();
+      f.storage.data.clear();
+      f.storage.alarm = null;
+      f.evict();
+      const invalid = await f.room.fetch(
+        new Request("http://localhost/ws/QA2026", {
+          headers: { Upgrade: "websocket", "Sec-WebSocket-Protocol": "misthy-v1, invalid" },
+        }),
+      );
+      expect(invalid.status).toBe(401);
+      expect(f.storage.data.size).toBe(0);
+      // Reach admission protection before Node's unavailable native WS upgrade.
+      for (let i = 0; i < 3; i++) f.socket("PLAYER", joined.player.id);
+      const ticket = await issueRoleTicket(
+        f.env,
+        { id: expected.sessionId, code: expected.sessionCode },
+        "PLAYER",
+        joined.player.id,
+      );
+      const restored = await f.room.fetch(
+        new Request("http://localhost/ws/QA2026", {
+          headers: { Upgrade: "websocket", "Sec-WebSocket-Protocol": `misthy-v1, ${ticket}` },
+        }),
+      );
+      expect(restored.status).toBe(429);
+      expect(f.storage.data.get("sessionId")).toBe(expected.sessionId);
+      expect(f.storage.data.get("engineState")).toEqual(expected);
+    } finally {
+      f.db.sql.close();
+    }
+  });
   it("bounds HTTP bodies and join bursts before they can exhaust room resources", async () => {
     const f = await harness();
     try {
