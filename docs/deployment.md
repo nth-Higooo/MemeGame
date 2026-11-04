@@ -1,52 +1,157 @@
-# Cloudflare deployment
+# Production deployment (Windows and Ubuntu)
 
-One Worker serves Hono `/api/*` and `/ws/*` routes plus the Vite bundle through Workers Static Assets. D1, R2, and the SQLite-backed `GameSession` Durable Object are configured in `apps/worker/wrangler.jsonc`.
+This guide describes the supported single-Worker deployment. The Worker serves the Vite build through Workers Static Assets and routes `/api` and `/ws` through Hono. Production uses a SQLite-backed Durable Object per game session, D1 for durable records and private R2 for images. Wrangler configuration is in `apps/worker/wrangler.production.json`.
 
-## Resources
+## Release status and Cloudflare Free plan
 
-```bash
-wrangler login
-wrangler d1 create misthy-meme-party
-wrangler r2 bucket create misthy-meme-library
-```
+Phase 09 prepared the deployment workflow, but no production resources or Worker have been created. Authenticated account inspection showed no D1 database and Cloudflare returned error **10042** (“Please enable R2 through the Cloudflare Dashboard”) for the read-only R2 bucket listing. The deployment is therefore intentionally stopped before any create, migration, secret write or deploy command. No URL is available.
 
-Replace the placeholder D1 `database_id` in Wrangler config. Use separate preview and production resources.
+For the current Cloudflare limits, check the account dashboard before each event because limits and plan terms can change. At the time this guide was reviewed, the published Free allowances include:
 
-Copy `.env.example` to `apps/worker/.dev.vars` locally. For production secrets:
+- Workers: 100,000 requests/day, with a 10 ms CPU limit per request; Static Assets requests are free and unlimited.
+- Durable Objects: 100,000 requests/day and 13,000 GB-seconds/day; SQLite reads/writes use the published D1 row allowances, with a 5 GB Free storage allowance. Check current limits, since storage accounting and caps can change.
+- D1: 5 million rows read/day, 100,000 rows written/day, and 5 GB total database storage.
+- R2 Standard: 10 GB-month storage, 1 million Class A operations/month, 10 million Class B operations/month, and no egress charge within the published free tier.
 
-```bash
-cd apps/worker
-wrangler secret put ADMIN_SESSION_SECRET
-wrangler secret put ADMIN_BOOTSTRAP_PASSWORD
-```
+See Cloudflare's live [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/), [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/), and [R2 pricing](https://developers.cloudflare.com/r2/pricing/). Exceeding an included allowance can require a paid plan or incur charges under the account's current terms. This project does not enable an upgrade or billing subscription.
 
-Never expose these values through `VITE_*`. Rotate or remove the bootstrap secret after the first owner exists.
+**R2 gate:** R2 has a free allowance, but enabling it on an account may require subscription activation/checkout. If Cloudflare shows the R2 activation page, the account owner must review and explicitly complete its Dashboard checkout. This has not been authorized or performed here. Do not attempt to deploy until the owner has done so and confirmed the account's billing terms. No secret, token, or account ID belongs in chat or source control.
 
-`MAX_UPLOAD_BYTES` is non-secret and defaults to `10485760` (10 MiB). Keep it within current Workers request/memory limits. The API accepts GIF, WebP, PNG, and JPEG only and verifies the declared MIME type plus binary signature.
+## Prerequisites
 
-## Migrate and deploy
+- Node.js 22.13+, pnpm 10.20.0, and this repository's frozen lockfile.
+- A Cloudflare account on the intended account, with Workers Free and R2 activation explicitly authorized.
+- A scoped Cloudflare API token usable for Workers, D1, and R2 operations; keep it in the local shell or GitHub Actions secret store only.
+- A private GitHub repository/environment with main-branch protection if using the manual deployment workflow.
 
-```bash
+Install from a fresh checkout.
+
+PowerShell:
+
+```powershell
+corepack enable
+corepack prepare pnpm@10.20.0 --activate
 pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm --filter @misthy/worker db:migrate:remote
-pnpm deploy
+pnpm check
+pnpm audit --prod --audit-level moderate
 ```
 
-Bootstrap the first owner at `/admin/<SESSION_CODE>/content`, or call `POST /api/admin/auth/bootstrap` with `X-Bootstrap-Secret`. Bootstrap returns `409` after an account exists.
+Ubuntu:
 
-R2 is private in Phase 03; authenticated admins stream previews through the Worker. Archiving is the normal removal path. Hard delete is restricted to unreferenced assets and removes D1 metadata and the R2 object. A failed D1 insert after upload triggers compensating R2 deletion.
+```bash
+corepack enable
+corepack prepare pnpm@10.20.0 --activate
+pnpm install --frozen-lockfile
+pnpm check
+pnpm audit --prod --audit-level moderate
+```
 
-Rollback application code using Cloudflare deployment versions. Fix D1 schema problems with a reviewed forward migration.
+## First-time resource setup
 
-## Phase 07 upgrade
+First review Cloudflare's R2 activation terms in the Dashboard. If the account owner declines, stop; this application's current media storage requires R2. After activation only, authenticate (`pnpm exec wrangler login`) and create the named resources. Resource creation is intentionally a manual action, not part of the scripts/workflow.
 
-Apply migration `0004_talent_judging.sql` through the migration commands above before deploying the new Worker. No new cloud binding or secret is required. Existing automated sessions remain compatible; create a new manual session in the Admin dashboard for confirmed publication and protected Judge access. Judge credentials are provisioned per room through the authenticated dashboard, never through frontend environment variables. Use HTTPS for production cookie security and share only clean player/display/Judge URLs. See [operator guide](admin-control.md).
+PowerShell:
 
-## Phase 08 release gate
+```powershell
+pnpm exec wrangler d1 create misthy-meme-party-production
+pnpm exec wrangler r2 bucket create misthy-meme-library-production
+```
 
-Back up the intended database and apply migration `0005_operational_indexes.sql` before the hardened Worker. No additional paid service, binding or production secret is required. `MAX_UPLOAD_BYTES` is now clamped to a 20 MiB hard maximum; multipart overhead is separately bounded. New rooms admit at most 50 players.
+Ubuntu:
 
-Read [QA acceptance/readiness](phase08-qa.md), [Event Day checklist](event-day.md) and [troubleshooting](troubleshooting.md) before authorizing a release. This development phase performs local tests and a deployment dry-run only. Functional local success does not grant production sign-off or verify venue media, cloud runtime eviction or remaining quota.
+```bash
+pnpm exec wrangler d1 create misthy-meme-party-production
+pnpm exec wrangler r2 bucket create misthy-meme-library-production
+```
+
+Copy the D1 database UUID from the CLI output. In the same local shell, set the account, database and acknowledgement values; these are not application secrets, but do not commit the generated config:
+
+PowerShell:
+
+```powershell
+$env:CLOUDFLARE_ACCOUNT_ID = "<account-id>"
+$env:CLOUDFLARE_D1_DATABASE_ID = "<database-uuid>"
+$env:CLOUDFLARE_R2_BUCKET = "misthy-meme-library-production"
+$env:CLOUDFLARE_FREE_PLAN_CONFIRMED = "true"
+$env:CLOUDFLARE_R2_ALREADY_ENABLED = "true"
+pnpm production:configure
+pnpm production:check
+```
+
+Ubuntu:
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID='<account-id>'
+export CLOUDFLARE_D1_DATABASE_ID='<database-uuid>'
+export CLOUDFLARE_R2_BUCKET='misthy-meme-library-production'
+export CLOUDFLARE_FREE_PLAN_CONFIRMED=true
+export CLOUDFLARE_R2_ALREADY_ENABLED=true
+pnpm production:configure
+pnpm production:check
+```
+
+`production:configure` only changes the local production binding file. Review it and keep it out of commits if it contains account-specific IDs. `production:preflight` uses read-only Cloudflare commands to confirm existing resources and stops on missing R2/D1 access; it never creates or activates resources.
+
+## Secrets, migrations, and deploy
+
+Create strong, unique Admin secrets with a password manager. For a manual shell deployment, use Cloudflare's secret prompts (do not put values in arguments, environment manifests committed to Git, `VITE_*`, or logs):
+
+```bash
+pnpm exec wrangler secret put ADMIN_SESSION_SECRET --config apps/worker/wrangler.production.json
+pnpm exec wrangler secret put ADMIN_BOOTSTRAP_PASSWORD --config apps/worker/wrangler.production.json
+```
+
+The commands prompt for values. Rotate/remove the bootstrap password after creating the owner. Judge credentials are separately provisioned in the Admin UI. Secrets are not set by the deployment script.
+
+Then run sequentially from the repository root, after the R2 gate is complete:
+
+```bash
+pnpm production:preflight
+pnpm production:build
+pnpm production:migrate
+pnpm production:deploy
+```
+
+Migration is an explicit step and follows a backup. Deployment scripts require explicit free-plan and already-enabled-R2 acknowledgements and check existing bindings before applying migrations or publishing. The Worker config declares SQLite Durable Object storage and `/api`, `/api/*`, `/ws`, `/ws/*` worker-first routing. SPA navigation falls back to `index.html`; API and WebSocket paths are not served as HTML.
+
+After deployment, obtain the generated `workers.dev` URL from the Wrangler output or Dashboard, then run:
+
+```bash
+PRODUCTION_BASE_URL='https://<verified-worker>.workers.dev' pnpm production:verify
+PRODUCTION_BASE_URL='https://<verified-worker>.workers.dev' pnpm production:acceptance
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:PRODUCTION_BASE_URL = "https://<verified-worker>.workers.dev"
+pnpm production:verify
+pnpm production:acceptance
+```
+
+The full acceptance suite creates disposable production test records and a test image. Run it only on the intended release Worker after confirming it is safe to create test data; remove the test content afterward. It does not run the 30/50-player load suite against Cloudflare.
+
+## GitHub Actions deployment
+
+`.github/workflows/deploy.yml` is manual-only, main-branch-only, and uses the protected `production` GitHub Environment. Set Environment variables `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_R2_BUCKET`, and booleans `CLOUDFLARE_FREE_PLAN_CONFIRMED=true`, `CLOUDFLARE_R2_ALREADY_ENABLED=true`. Add a scoped `CLOUDFLARE_API_TOKEN` as an Environment secret. The manual run requires explicit confirmations that the Free plan/R2 activation, backup or empty database, and application secrets are ready. The workflow runs checks and build, then the read-only preflight, remote migrations and deploy. Protect the Environment with required human reviewers; keep the token restricted to this environment. The workflow does not create resources, set application secrets, or enable billing. Set the two acknowledgement variables only after the account owner verifies the current plan and completed R2 activation.
+
+## Verification and HTTPS
+
+Verify HTTPS and `/api/health`; verify `/play/<code>`, `/display/<code>`, `/admin/<code>` SPA fallback; sign in as Admin; upload and preview an original GIF; create a session; join from a phone; observe display updates and complete each mode. Confirm refresh/reconnect restoration and persisted scores. `production:verify` checks HTTPS, health response shape, SPA routes, API behavior and that protected endpoints reject unauthenticated requests. `production:acceptance` exercises both modes, media and refresh behavior.
+
+Production deployment verification is pending until R2 billing activation and remote resources are explicitly enabled. A local Wrangler rehearsal is not evidence of an edge deployment.
+
+## Rollback
+
+Before release, record the deployed Worker version/deployment ID, migration status, and encrypted backup path. To roll back code using the Wrangler deployment history, inspect the deployment list, then roll back the reviewed version:
+
+```bash
+pnpm exec wrangler deployments list --name misthy-meme-party-production
+pnpm exec wrangler rollback <deployment-id> --name misthy-meme-party-production --config apps/worker/wrangler.production.json --yes
+```
+
+Use the same `--config` arguments in PowerShell. Confirm the exact syntax shown by `pnpm exec wrangler rollback --help` for the pinned Wrangler version before operating. A code rollback does not reverse D1 migrations. Prefer a forward fix; restoring D1 is a separate incident procedure documented in [backup and restore](backup-and-restore.md) and must not overwrite a live database without a reviewed recovery plan.
+
+## Quota and cost watch
+
+Before the event, inspect usage/billing in the Cloudflare Dashboard for Workers, Durable Objects, D1, and R2. Recheck after rehearsal and after the event. The 20–50 participant target and local concurrency measurements do not guarantee the production workload stays within free allocations; GIF sizes, repeated media loads, reconnect churn, storage growth, other account workloads, and published plan changes affect usage. Avoid production load tests. Do not enable a paid upgrade without account-owner approval.

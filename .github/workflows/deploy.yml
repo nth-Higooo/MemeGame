@@ -12,6 +12,11 @@ on:
         type: boolean
         required: true
         default: false
+      application_secrets_configured:
+        description: Admin session and bootstrap secrets already configured in Cloudflare
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -19,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified
+    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified && inputs.application_secrets_configured
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { chmod, mkdir, mkdtemp, readdir, rm, rmdir, stat, writeFile } from "node:fs/promises";
-import { tmpdir, userInfo } from "node:os";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { preflight, productionFile, wrangler } from "./production-lib.mjs";
@@ -39,14 +39,8 @@ async function hash(path) {
 }
 async function privateTemp() {
   const path = await mkdtemp(join(tmpdir(), "misthy-backup-"));
-  if (process.platform === "win32")
-    await command("icacls", [
-      path,
-      "/inheritance:r",
-      "/grant:r",
-      `${userInfo().username}:(OI)(CI)F`,
-    ]);
-  else await chmod(path, 0o700);
+  // Windows creates this under the user's Temp ACL; Ubuntu gets explicit owner-only mode.
+  if (process.platform !== "win32") await chmod(path, 0o700);
   return path;
 }
 async function cleanup(path) {
@@ -214,13 +208,6 @@ async function unpack(input, destination, passphrase) {
     const expectedMedia = new Set(manifest.assets.map((asset) => `${asset.id}.bin`));
     if ((await readdir(join(scratch, "media"))).some((name) => !expectedMedia.has(name)))
       throw new Error("Unexpected media file");
-    if (process.platform === "win32")
-      await command("icacls", [
-        output,
-        "/inheritance:r",
-        "/grant:r",
-        `${userInfo().username}:(OI)(CI)F`,
-      ]);
     await command("tar", ["-xf", archive, "-C", output]);
     console.log(
       "Backup authenticated, checksummed and unpacked locally. Cloud data was not changed. Follow docs/backup-and-restore.md.",

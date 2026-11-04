@@ -23,7 +23,7 @@
     "production:check": "node scripts/production.mjs check",
     "production:preflight": "node scripts/production.mjs preflight",
     "production:migrate": "node scripts/production.mjs migrate",
-    "production:build": "pnpm --filter @misthy/web build && wrangler deploy --dry-run --config apps/worker/wrangler.production.json --outdir apps/worker/dist-production",
+    "production:build": "pnpm --filter @misthy/web build && wrangler deploy --dry-run --config apps/worker/wrangler.production.json --outdir dist-production",
     "production:deploy": "node scripts/production.mjs deploy",
     "production:verify": "node scripts/verify-deployment.mjs",
     "production:acceptance": "playwright test --config playwright.production.config.ts",

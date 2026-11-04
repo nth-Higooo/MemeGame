@@ -271,3 +271,43 @@ Phase 08 changed files:
 - Web: `apps/web/src/components/operator-media.tsx`, `apps/web/src/lib/reconnect-delay.ts`, `apps/web/src/lib/player-session.ts`, `apps/web/src/lib/display-session.ts`, `apps/web/src/lib/admin-session.ts`, `apps/web/src/pages/play-page.tsx`, `apps/web/src/pages/admin-page.tsx`, `apps/web/src/i18n/player-vi.ts`, `apps/web/src/i18n/admin-vi.ts`.
 - Browser tooling/tests: `package.json`, `playwright.qa.config.ts`, `tests/qa/concurrency.spec.ts`, `tests/admin/admin.spec.ts`.
 - Documentation: `README.md`, `docs/phase08-qa.md`, `docs/event-day.md`, `docs/troubleshooting.md`, `docs/progress.md`, `docs/requirements.md`, `docs/testing.md`, `docs/database.md`, `docs/architecture.md`, `docs/deployment.md`, `docs/realtime-engine.md`, `docs/game-rules.md`, `docs/design-system.md`, `docs/player-experience.md`, `docs/presentation-display.md`.
+
+## Phase 09 — Free-tier Cloud Deployment and Handover
+
+Status: **local handover prepared; Cloudflare deployment blocked at explicit R2 subscription activation**. No remote resources, secrets, migration, or deployment were created, and no production URL is available.
+
+Completed locally:
+
+- Added `apps/worker/wrangler.production.json` for one Worker serving the SPA/API, SQLite Durable Objects, D1, private R2, upload limit, and exact plus wildcard Worker-first API/WebSocket routes. Production IDs remain placeholders until the account owner completes setup.
+- Added config validation, explicit free-plan/R2 acknowledgements, read-only existing-resource preflight, migration/deployment gates, production route/health verifier, and a local production-profile rehearsal command. These scripts never activate billing or create resources.
+- Added a manual main-branch GitHub Actions deployment workflow using a protected `production` environment, scoped API token secret, required preflight acknowledgements, and migration/deploy steps. Application secrets remain a separate operator setup.
+- Added production two-mode browser acceptance coverage for Admin, player, display, R2 upload/download/cache behavior, and refresh/persistence, plus operational security tests for production config gates, encrypted backup tampering, path traversal, and restore authentication.
+- Added encrypted, checksum-verified D1/results/R2 backup collection and local-only authenticated unpack. The scripts do not import into cloud; the operator-reviewed disaster restore workflow is documented.
+- Replaced README setup/deployment instructions and added Admin, Player, Event Day, Troubleshooting, and Backup/Restore guides. Documented Windows PowerShell and Ubuntu procedures, rollback, resource limits, quotas, and known restore limitations.
+- Fixed exact `/api` and `/ws` path handling so the Static Assets worker-first routes pass through Hono as their wildcard counterparts do.
+
+Cloudflare findings on 2026-11-05 (Asia/Bangkok):
+
+- Wrangler OAuth login and read-only account identity inspection succeeded. A D1 list returned no databases.
+- A read-only R2 bucket-list request returned Cloudflare error **10042**, requiring R2 activation in the Dashboard. Cloudflare's current R2 getting-started page requires the account owner to complete subscription checkout, even though a free monthly allowance exists. Work stopped at this billing/authorization gate. The account owner must review and explicitly complete `Dashboard → Storage & databases → R2 → Overview → checkout/activate subscription`, then tell the operator when it is complete.
+- No D1 or R2 bucket has been created. No production secrets were written. No remote migration/deploy was run. Do not set `CLOUDFLARE_R2_ALREADY_ENABLED=true` or proceed until the account owner confirms activation and current terms.
+- The official free quotas and links are recorded in `docs/deployment.md`; recheck before event use because plan limits can change. No paid plan upgrade was selected.
+
+Verification:
+
+- Wrangler CLI help confirmed the current `d1 info`, `r2 bucket info/object put`, secret, and rollback command shapes. The config's static asset Worker-first exact/wildcard routes and single Worker topology are statically validated.
+- `pnpm lint` and `pnpm typecheck` passed. `pnpm test:ops` passes 5/5 after making Windows temp handling compatible with the restricted shell identity.
+- `pnpm check` passes formatting, lint, strict TypeScript, all 54 Vitest tests (8 shared, 13 engine, 28 Worker, 5 operations), frontend build, and standard Wrangler dry-run. Vite reports the known ~546 kB main chunk advisory.
+- `pnpm production:build` passes against the dedicated production config (968.66 KiB total / 165.27 KiB gzip); all expected static assets, SQLite DO, D1/R2 bindings, upload cap, and worker-first routes appear in Wrangler dry-run. The dry-run is local and does not contact Cloudflare.
+- `pnpm production:rehearse` passes 2/2 local Playwright production-profile acceptance cases for Talent and Community, including Admin login/content/media, player joins/submissions/voting, display WebSocket updates, winner publication, and refresh persistence. It used local Wrangler D1/R2/DO simulators and the installed Chrome browser; no cloud quota was consumed. Its initial attempt exposed and fixed missing migrations in the isolated rehearsal D1. Windows runtime teardown can log an access-denied/crash warning after the test cases pass; no server stays bound to port 8790 after cleanup.
+- Remote acceptance, actual HTTPS/WebSocket, cloud R2 cache behavior, remote migration/recovery, GitHub Actions execution, and production quota telemetry cannot be verified until the R2 gate is completed and resources are explicitly provisioned.
+- Local 30/50 player QA is not evidence of Cloudflare edge latency or quota usage. Production readiness is **not claimed**.
+
+Phase 09 changed areas include production Wrangler config, `scripts/production*.mjs`, backup/verification/rehearsal scripts, `playwright.production.config.ts`, `tests/production`, `tests/ops`, package scripts, production GitHub workflows, `.gitignore`, README, and deployment/admin/player/event/troubleshooting/backup documentation.
+
+Outstanding handoff steps:
+
+1. Account owner completes or declines the R2 subscription checkout. If declined, choose an alternative media provider in a separately scoped change; do not bypass the private R2 binding.
+2. After explicit activation, configure the account, create D1 and R2, enter the local bindings, and run the gated preflight.
+3. Provision secrets with Wrangler prompts, make a verified encrypted backup (or confirm a new empty DB), apply migrations, deploy, and verify the generated URL.
+4. Run both-mode production acceptance with test records, remove test assets/results, verify Admin/player/display/Judge workflows and reconnect persistence, then publish the verified URL.

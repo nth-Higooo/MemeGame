@@ -4,6 +4,7 @@ const origin = new URL(process.env.PRODUCTION_ORIGIN ?? "http://unconfigured.inv
 const rehearsal =
   process.env.PRODUCTION_ACCEPTANCE_LOCAL_REHEARSAL === "true" &&
   origin.origin === "http://127.0.0.1:8790";
+const rehearsalServerPrestarted = process.env.PRODUCTION_REHEARSAL_SERVER_PRESTARTED === "true";
 if (
   (origin.protocol !== "https:" && !rehearsal) ||
   origin.username ||
@@ -35,7 +36,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "list",
-  ...(rehearsal
+  ...(rehearsal && !rehearsalServerPrestarted
     ? {
         webServer: {
           command:
