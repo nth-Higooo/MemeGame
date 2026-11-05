@@ -37,7 +37,7 @@ Phase 08 joins insert identity and update the authoritative snapshot in the same
 
 ## Authentication data
 
-Passwords use PBKDF2-SHA-256 with a unique 128-bit salt and 120,000 iterations through Workers Web Crypto. Admin sessions are eight-hour HMAC-SHA-256 signed HttpOnly cookies. Failed logins are rate-limited by email plus a SHA-256 IP digest.
+Passwords use PBKDF2-SHA-256 with a unique 128-bit salt and 100,000 iterations through Workers Web Crypto. Cloudflare Workers rejects PBKDF2 counts above 100,000. The platform ceiling is lower than current general-purpose password-hashing recommendations; use a long, unique Admin password and keep D1 protected. Admin sessions are eight-hour HMAC-SHA-256 signed HttpOnly cookies. Failed logins are rate-limited by email plus a SHA-256 IP digest.
 
 ## Import/export
 

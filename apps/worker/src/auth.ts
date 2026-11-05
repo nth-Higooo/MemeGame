@@ -40,7 +40,8 @@ function equalBytes(left: Uint8Array, right: Uint8Array) {
 export async function hashPassword(
   password: string,
   salt = crypto.getRandomValues(new Uint8Array(16)),
-  iterations = 120_000,
+  // Cloudflare Workers currently rejects PBKDF2 counts above 100,000.
+  iterations = 100_000,
 ) {
   const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, [
     "deriveBits",
