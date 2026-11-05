@@ -14,13 +14,13 @@ const feedback: Record<
     icon: LoaderCircle,
     title: "Đang chuẩn bị meme",
     description: "Chờ một nhịp nhé, kho meme sắp xuất hiện.",
-    tone: "bg-violet-100 text-violet-700",
+    tone: "badge-violet",
   },
   empty: {
     icon: ImageOff,
     title: "Chưa có meme phù hợp",
     description: "Thử một từ khóa khác hoặc xem toàn bộ thư viện.",
-    tone: "bg-sky-100 text-sky-700",
+    tone: "badge-warning",
   },
   error: {
     icon: CircleAlert,
@@ -61,8 +61,8 @@ export function FeedbackState({
           size={20}
         />
       </span>
-      <strong className="mt-4 text-base font-black text-violet-950">{item.title}</strong>
-      <p className="mt-1 max-w-xs text-sm leading-5 text-violet-950/56">{item.description}</p>
+      <strong className="mt-4 text-base font-black text-[var(--ink-strong)]">{item.title}</strong>
+      <p className="mt-1 max-w-xs text-sm leading-5 text-[var(--ink-body)]">{item.description}</p>
       {action ??
         ((kind === "error" || kind === "disconnected") && (
           <GlassButton className="mt-4" size="small" variant="soft">

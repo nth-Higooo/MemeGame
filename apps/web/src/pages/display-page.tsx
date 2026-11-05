@@ -189,7 +189,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
       data-testid="presentation"
       data-phase={phase ?? "CONNECTING"}
     >
-      <CelestialBackground />
+      <CelestialBackground tone="stage" />
       <header className="presentation-header">
         <Brand />
         <div className="presentation-header-meta">

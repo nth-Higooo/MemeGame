@@ -344,8 +344,8 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
     );
   if (judge && (!authenticated || game.status === "unauthorized"))
     return (
-      <main className="grid min-h-screen place-items-center p-5">
-        <CelestialBackground />
+      <main className="theme-dark grid min-h-screen place-items-center p-5">
+        <CelestialBackground tone="stage" />
         <GlassCard className="relative w-full max-w-md p-6">
           <Brand />
           <h1 className="mt-5 text-2xl font-black">{c.judgeTitle}</h1>
@@ -393,8 +393,8 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                 ? c.leaderboard
                 : c.next;
   return (
-    <main className="control-live min-h-screen">
-      <CelestialBackground />
+    <main className="theme-dark control-live min-h-screen">
+      <CelestialBackground tone="stage" />
       <div className="relative mx-auto max-w-[1600px] p-4 lg:p-7">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-5">
@@ -433,7 +433,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
           </p>
         )}
         {notice && (
-          <p className="mb-4 rounded-2xl bg-emerald-50 p-3" role="status">
+          <p className="notice-positive mb-4 rounded-2xl p-3" role="status">
             {notice}
           </p>
         )}
@@ -605,7 +605,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     {seconds !== null && <CountdownTimer seconds={seconds} />}
                   </div>
                   {!state.manualControl && (
-                    <p className="mt-3 text-sm text-amber-800">{c.manualLegacy}</p>
+                    <p className="mt-3 text-sm text-[var(--accent-jasmine)]">{c.manualLegacy}</p>
                   )}
                   {state.paused && <p className="mt-3 font-bold">{c.pause}</p>}
                   {seconds === 0 && <p>{c.expired}</p>}
@@ -688,7 +688,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     </div>
                   )}
                   {state.resultPending && (
-                    <div className="mt-4 rounded-2xl bg-violet-50 p-4">
+                    <div className="surface-soft mt-4 rounded-2xl p-4">
                       <strong>{judge ? c.judgeChosen : c.provisional}</strong>
                       <p className="mt-2 text-sm">
                         {state.provisionalWinnerId
@@ -736,7 +736,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {state.submissions.map((submission, index) => (
                       <article
-                        className="rounded-2xl border border-white bg-white/65 p-3"
+                        className="surface-solid rounded-2xl border border-[var(--border-card)] p-3"
                         key={submission.id}
                       >
                         {judge ? (

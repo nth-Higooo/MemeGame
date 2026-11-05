@@ -129,8 +129,8 @@ export function ContentAdminPage({ sessionCode }: { sessionCode: string }) {
     );
 
   return (
-    <main className="admin-canvas min-h-screen">
-      <CelestialBackground />
+    <main className="theme-dark admin-canvas min-h-screen">
+      <CelestialBackground tone="stage" />
       <div className="relative mx-auto max-w-[1500px] p-4 md:p-7">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-5">
@@ -160,7 +160,7 @@ export function ContentAdminPage({ sessionCode }: { sessionCode: string }) {
           </div>
         </header>
         <nav
-          className="mb-5 flex gap-2 overflow-x-auto rounded-[var(--radius-pill)] border border-white/70 bg-white/50 p-1.5 backdrop-blur-xl"
+          className="surface-frosted mb-5 flex gap-2 overflow-x-auto rounded-2xl p-1.5"
           aria-label="Quản lý nội dung"
         >
           {(
@@ -237,8 +237,8 @@ export function AdminLogin({
     }
   };
   return (
-    <main className="grid min-h-screen place-items-center p-4">
-      <CelestialBackground />
+    <main className="theme-dark grid min-h-screen place-items-center p-4">
+      <CelestialBackground tone="stage" />
       <GlassCard className="relative w-full max-w-md p-6">
         <Brand />
         <h1 className="mt-6 text-2xl font-black">{bootstrap ? "Khởi tạo quản trị" : title}</h1>
@@ -258,13 +258,13 @@ export function AdminLogin({
             required
           />
           {bootstrap && <GlassInput label="Mã khởi tạo" name="secret" type="password" required />}
-          {error && <p className="text-sm font-semibold text-red-700">{error}</p>}
+          {error && <p className="text-sm font-semibold text-[var(--accent-pink)]">{error}</p>}
           <GlassButton className="w-full" type="submit">
             {bootstrap ? "Khởi tạo và đăng nhập" : "Đăng nhập"}
           </GlassButton>
         </form>
         <button
-          className="mt-4 w-full text-sm font-bold text-[var(--periwinkle-700)]"
+          className="mt-4 min-h-[var(--size-touch)] w-full text-sm font-bold text-[var(--periwinkle-700)]"
           onClick={() => setBootstrap(!bootstrap)}
         >
           {bootstrap ? "Đã có tài khoản" : "Khởi tạo lần đầu"}
@@ -336,7 +336,7 @@ function AssetsPanel({
           />
           {preview && (
             <img
-              className="aspect-video w-full rounded-2xl object-contain bg-white/50"
+              className="aspect-video w-full rounded-2xl object-contain bg-[var(--surface-soft)]"
               src={preview}
               alt="Xem trước tệp tải lên"
             />
@@ -385,12 +385,12 @@ function AssetsPanel({
             <GlassCard className="overflow-hidden p-3" key={asset.id}>
               {asset.contentUrl ? (
                 <img
-                  className="aspect-video w-full rounded-2xl bg-white/60 object-contain"
+                  className="aspect-video w-full rounded-2xl bg-[var(--surface-soft)] object-contain"
                   src={asset.contentUrl}
                   alt={asset.altText || asset.title}
                 />
               ) : (
-                <div className="grid aspect-video place-items-center rounded-2xl bg-white/50 text-xs font-bold text-[var(--ink-muted)]">
+                <div className="grid aspect-video place-items-center rounded-2xl bg-[var(--surface-soft)] text-xs font-bold text-[var(--ink-muted)]">
                   Placeholder metadata
                 </div>
               )}
@@ -549,7 +549,7 @@ function QuestionsPanel({
           </label>
           <fieldset>
             <legend className="text-sm font-bold">Bộ meme được phép</legend>
-            <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-2xl bg-white/50 p-3">
+            <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-3">
               {assets
                 .filter((asset) => asset.status !== "ARCHIVED")
                 .map((asset) => (
@@ -582,7 +582,7 @@ function QuestionsPanel({
         {questions.map((question, index) => (
           <GlassCard className="p-4" key={question.id}>
             <div className="flex items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/70 font-black">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--surface-soft)] font-black">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
@@ -751,7 +751,7 @@ function PresetsPanel({
           </label>
           <fieldset>
             <legend className="text-sm font-bold">Câu hỏi theo thứ tự hiện tại</legend>
-            <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-2xl bg-white/50 p-3">
+            <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-3">
               {questions
                 .filter((item) => item.status !== "ARCHIVED")
                 .map((question) => (
@@ -913,7 +913,7 @@ function StatusSelect({ value = "DRAFT" }: { value: Status | undefined }) {
 }
 function Empty({ text }: { text: string }) {
   return (
-    <div className="rounded-3xl border border-dashed border-white bg-white/40 p-10 text-center text-sm font-semibold text-[var(--ink-muted)]">
+    <div className="rounded-3xl border border-dashed border-[var(--border-soft)] bg-[var(--surface-soft)] p-10 text-center text-sm font-semibold text-[var(--ink-muted)]">
       {text}
     </div>
   );

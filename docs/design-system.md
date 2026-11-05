@@ -1,12 +1,18 @@
-# Celestial Pastel Glass Design System
+# Dreamy Peachy Cosmic × Pink Glass UI
 
 ## Art direction
 
-Phase 02 dùng ngôn ngữ **Celestial Pastel × Dreamy Glass × Playful Illustration**: nền trời pastel ấm cho Player/Admin, sân khấu indigo cho Display, cloud/sparkle vector có cùng silhouette và line treatment. Mục tiêu là giao diện indie party game được art-direct, không phải landing page AI hoặc dashboard SaaS.
+The 2026-11-05 visual follow-up rebalances the Phase 02 celestial identity toward
+**Dreamy Peachy Cosmic × Pink Glass UI**. Berry, pink, blush, caramel and jasmine
+lead; Protocol Noir anchors the Display/Admin and lavender supports reflections.
+The supplied references inform pink glass, four-point stars and holographic ovals.
+The scoped plan and implementation phases are in [peachy-theme.md](peachy-theme.md).
 
-Glass là lớp chức năng nổi dành cho navigation, action bar, modal và toolbar. Câu hỏi, meme, danh sách và control panel dùng bề mặt solid/soft để giữ khả năng đọc.
+Glass stays restrained on navigation, action bars, dialogs and panels. Prompts and
+media use readable, near-opaque surfaces. Player/Home have a blush canvas; Display,
+Admin, Judge, CMS and authentication use midnight with warm reflected light.
 
-## Audit UI trước redesign
+## Historical Phase 02 audit
 
 - Background dùng ba gradient orb lớn nên thiếu hình ảnh nhận diện và dễ giống template AI.
 - Glass treatment lặp ở navigation, content card, dashboard panel và action; phân cấp surface yếu.
@@ -21,18 +27,32 @@ Glass là lớp chức năng nổi dành cho navigation, action bar, modal và t
 
 Token nguồn nằm tại `apps/web/src/styles.css`.
 
-| Token           | Giá trị   | Vai trò                               |
-| --------------- | --------- | ------------------------------------- |
-| Candy Pink      | `#F9C6DE` | accent cảm xúc, stage progress        |
-| Soft Lilac      | `#C7B5F5` | selection/supporting surface          |
-| Cloud Blue      | `#A9DDF7` | atmosphere và illustration            |
-| Peach           | `#FFC4A7` | warm illustration accent              |
-| Periwinkle      | `#8F9BEF` | focus, progress, active state         |
-| Mint            | `#B9E9DA` | success và illustration               |
-| Warm White      | `#FFF8F7` | Player/Admin canvas                   |
-| Midnight Indigo | `#242B4D` | primary action, heading, stage anchor |
+| Token                  | Value     | Role                                         |
+| ---------------------- | --------- | -------------------------------------------- |
+| `--bg-deep`            | `#171836` | Protocol Noir, stage/Admin depth             |
+| `--bg-cosmic-plum`     | `#352039` | Warm shadow and cosmic base                  |
+| `--bg-warm-glow`       | `#FBE0E0` | Soft Blush, Player atmosphere                |
+| `--accent-berry`       | `#D5306D` | Berry Lipstick, primary actions/selection    |
+| `--accent-pink`        | `#FF92C1` | Pink Mist, light bloom/dark-surface emphasis |
+| `--accent-peach`       | `#EEB17D` | Light Caramel, reflection/winner glow        |
+| `--accent-jasmine`     | `#EFD47A` | Jasmine, stars and highlighted status        |
+| `--accent-lavender`    | `#A775C9` | Bright Lavender, secondary reflection        |
+| `--accent-flucberry`   | `#BB53CF` | Supporting violet swatch                     |
+| `--accent-blossom`     | `#F9A1F8` | Supporting illustration pink                 |
+| `--accent-light-peach` | `#FEDBAD` | Light Peach, holographic border              |
+| `--accent-honeydew`    | `#EAF7EC` | Supporting mint illustration                 |
 
-Semantic ink: `--ink-strong`, `--ink-body`, `--ink-muted`. Surface: `--surface-solid`, `--surface-soft`, `--surface-frosted`, `--surface-clear`. Gradient chỉ còn ở background atmosphere hoặc illustration; control và card chủ yếu dùng màu solid.
+Semantic ink: `--ink-strong`, `--ink-body`, `--ink-muted`, `--accent-ink`.
+Berry text uses a darker `#A32353` on light surfaces. White-label primary actions
+use `#BA235B → #D5306D`, darkening on hover; pink/peach remain highlights, not
+low-contrast button labels. Keyboard focus has an opaque outline plus a soft halo.
+
+Glass: `--glass-light` (`rgba(251,224,224,.55)`), `--glass-pink`, `--glass-peach`,
+`--glass-dark`. Borders/glows: `--border-soft`, `--border-control`, `--border-card`,
+`--glow-pink`, `--glow-peach`, `--glow-gold`. `--holographic` combines pink, peach
+and lavender. Existing named tokens remain aliases so older consumers inherit
+the palette without changes to component APIs. `.theme-dark` and
+`.presentation-shell` scope readable light ink and opaque dark content surfaces.
 
 ## Typography
 
@@ -50,37 +70,43 @@ Stack ưu tiên Nunito, sau đó Segoe UI Variable/Segoe UI/system UI. Các font
 
 ## Surface variants
 
-1. **Solid Surface** — `#FFFDFB`, dùng cho câu hỏi, meme caption, list và control panel.
-2. **Soft Surface** — pastel tint nhẹ, dùng cho grouping phụ.
-3. **Frosted Glass** — blur 15 px tiết chế, dùng cho floating navigation/action.
-4. **Elevated Glass** — shadow mạnh hơn cho modal và bottom action bar.
-5. **Stage Surface** — indigo gần-opaque, border lilac thấp, dành cho projector.
+1. **Solid** — warm cream `#FFF5EF`; dark roles use `#2D2032`.
+2. **Soft** — blush grouping; dark roles use warm plum `#3D2A3B`.
+3. **Frosted/clear** — blush glass for floating controls; dark glass for operators.
+4. **Pink/peach** — warm reflections over a readable solid base for highlights/results.
+5. **Dark** — reusable `GlassCard variant="dark"` scopes light ink and dark surfaces.
 
-`prefers-reduced-transparency` chuyển lớp frosted thành solid và bỏ backdrop filter. Không xếp glass trong glass ở content area.
+`prefers-reduced-transparency` and `prefers-contrast: more` use opaque reading
+surfaces, remove backdrop blur and hide haze/orbits/grain. Dialogs inherit their
+role's tokens. QR codes keep their white backing and media receives no color tint.
 
 ## Component inventory
 
 Phase 08 adds `OperatorMedia({ src, alt })` for fixed-size Admin/Judge image slots, decode failure/retry and explicit GIF playback under reduced motion. Player media keeps a stable aspect ratio, retries fetch/decode failures and releases blob URLs outside the near-viewport window. These states reuse the same 44 px controls and Vietnamese locale catalog; no new color or motion token is required. Browser checks cover keyboard join, reduced-motion opt-in, 320 px overflow and offscreen reload; a full screen-reader/contrast audit remains on the Event Day checklist.
 
-| Component                                                              | Vai trò                                     |
-| ---------------------------------------------------------------------- | ------------------------------------------- |
-| `CelestialBackground`                                                  | Light/stage scene, cloud, star, grain       |
-| `DecorativeCloud`, `DecorativeSparkle`                                 | SVG illustration primitives                 |
-| `GlassCard`                                                            | Semantic solid/soft/frosted/clear surface   |
-| `GlassButton`, `GlassBadge`, `GlassInput`, `GlassModal`, `GlassNavbar` | Shared controls và floating layers          |
-| `QuestionCard`                                                         | Focal prompt không dùng glass               |
-| `CountdownTimer`                                                       | Compact/stage circular game timer           |
-| `ConnectionIndicator`                                                  | Connected/offline semantic status           |
-| `FloatingActionBar`                                                    | Mobile safe-area submit action              |
-| `MemeCard`, `MemeGrid`                                                 | Vector mock media, caption, selection state |
-| `FeedbackState`                                                        | Loading/empty/error/disconnected            |
+| Component                                                              | Vai trò                                                                 |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `CelestialBackground`                                                  | Existing cosmic background: light/stage, warm haze, stars, ovals, grain |
+| `DecorativeCloud`, `DecorativeSparkle`                                 | SVG illustration primitives                                             |
+| `GlassCard`                                                            | Semantic solid/soft/frosted/clear surface                               |
+| `GlassButton`, `GlassBadge`, `GlassInput`, `GlassModal`, `GlassNavbar` | Shared controls và floating layers                                      |
+| `QuestionCard`                                                         | Focal prompt không dùng glass                                           |
+| `CountdownTimer`                                                       | Compact/stage circular game timer                                       |
+| `ConnectionIndicator`                                                  | Connected/offline semantic status                                       |
+| `FloatingActionBar`                                                    | Mobile safe-area submit action                                          |
+| `MemeCard`, `MemeGrid`                                                 | Vector mock media, caption, selection state                             |
+| `FeedbackState`                                                        | Loading/empty/error/disconnected                                        |
 
-Meme mock được vẽ bằng SVG nội bộ với sáu art variants. Đây là fallback đại diện cho visual QA, chưa phải thư viện GIF thật của Phase 06.
+Home/showcase illustrations are six internal SVG variants using palette tokens.
+Live pages retain the existing R2 media lifecycle; no media transformations,
+external image dependencies or network behavior are introduced by this theme.
 
 ## Illustration guidelines
 
-- Cloud dùng silhouette phồng, highlight mềm và shadow periwinkle thống nhất.
-- Sparkle dùng hình bốn cánh; tiny star dùng dot có halo rất nhẹ.
+- Clouds retain the established silhouette with blush highlights and pink shadows.
+- Four-point sparkles use jasmine/blush; tiny gold stars have a restrained halo.
+- Static holographic ovals echo the reference. Large pink/peach light fields and
+  a small jasmine reflection keep the night scene layered rather than flat orange.
 - Mỗi scene chỉ có vài cluster ở mép composition; không đặt sau câu hỏi/control quan trọng.
 - Meme illustration dùng palette theo token, shape đơn giản và đường viền indigo thấp.
 - Lucide chỉ dùng cho utility/action; brand và personality đến từ SVG riêng.
@@ -89,26 +115,39 @@ Meme mock được vẽ bằng SVG nội bộ với sáu art variants. Đây là
 
 - Cloud drift 18 giây, biên độ nhỏ, là ambient loop duy nhất.
 - Hover/selection 160–180 ms, dịch chuyển tối đa 2 px.
-- Press feedback scale 0.985.
-- `prefers-reduced-motion` tắt animation/transition thực tế.
+- Press feedback scale 0.98.
+- `prefers-reduced-motion` removes decorative drift, hover/press movement and
+  transitions; winner particles are hidden and media keeps its existing opt-in playback.
 
 ## Responsive layouts
 
 ### Player
 
-Mobile-first tại 320/375/390 px: floating compact header, prompt solid, timer cạnh heading, search + horizontal filter, meme grid hai cột và bottom action bar. Media giữ ưu tiên thị giác; selected state dùng border + check icon, không phủ tint.
+Mobile-first at 320/375/390 px: blush navigation, cream prompt, berry timer/actions,
+two-column media grid, holographic selected border and peach/pink result cards.
+The sticky submit bar respects safe-area bottom insets. Shared small buttons are
+at least 44 px tall; selection never covers the image.
 
 ### Display
 
-Stage 16:9 dùng twilight scene, question lớn bên trái, submission count/timer/progress cùng một cụm và bốn meme ẩn danh bên phải. Không có admin/mobile navigation, không scrollbar ở 1280×720 và 1920×1080.
+The live 16:9 stage uses a deep cosmic base, warm blooms, pink room codes,
+near-opaque dark progress/media panels, peach/lavender progress accents and
+holographic winner/ranking outlines. Existing lobby, reveal carousel, voting,
+result, leaderboard, fullscreen and fallback layouts are preserved.
 
 ### Admin
 
-Creative control studio với sidebar 216 px, summary strip thay statistic-card grid, main round control, player list và display preview. Decoration giảm cường độ so với Player/Display; quick action nằm ở heading.
+The live control workspace, Judge, Content Studio and login use dark glass,
+blush text, pink reflections, outlined fields and warm status badges. Existing
+forms, controls, audit, Dry Run and confirmation behavior remain intact. No
+backend, API/WebSocket, engine or database change is part of the color update.
 
 ## Showcase và visual QA
 
-`/dev/design-system` chỉ resolve khi `import.meta.env.DEV`. Showcase gồm light/dark environment, palette, typography, surface, control states, input, modal, question, timer, meme selection và feedback states.
+`/dev/design-system` is development-only. It includes Player/Display/Admin
+environments, all eleven reference swatches from CSS tokens, seven surface
+variants, controls, focus, input, dialog, timer, selection and feedback states.
+New theme copy lives in `i18n/theme-vi.ts`.
 
 `pnpm visual:check` kiểm tra:
 
@@ -119,9 +158,15 @@ Creative control studio với sidebar 216 px, summary strip thay statistic-card 
 
 Script fail khi HTTP khác 200, có console error hoặc horizontal overflow. Screenshot local nằm trong `artifacts/phase02` và không commit.
 
+Live visual verification uses the existing Player/Display/Admin journeys against
+local Wrangler, with screenshots in `artifacts/phase05`, `phase06`, `phase07`.
+Supplemental theme screenshots and browser inspection are in ignored
+`artifacts/peachy-theme`. See `progress.md` for exact results and limitations.
+
 ## Known limitations
 
-- Bốn ảnh reference nêu trong brief không có trong attachment nhận được; implementation bám mô tả art direction thay vì đối chiếu pixel/reference trực tiếp.
-- Meme/GIF hiện là SVG mock, chưa phải media thật.
-- Các state join/waiting/voting/result được đại diện qua component/showcase; chưa có backend/state machine để điều hướng tới từng state.
-- Không thêm font, media hoặc dependency ngoài.
+- Physical mobile devices/projectors and venue lighting remain unverified.
+- Original tiny GIF fixtures establish layout/behavior, not production-media quality.
+- No external fonts, generated bitmap assets or dependencies were added.
+- Historical mock-only layout selectors remain in the stylesheet; live role pages
+  and the development showcase are the current styling reference.

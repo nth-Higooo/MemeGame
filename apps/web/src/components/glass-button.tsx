@@ -15,7 +15,7 @@ export const glassButtonVariants = cva(
         danger: "button-danger",
       },
       size: {
-        small: "min-h-10 px-4 text-xs",
+        small: "min-h-[var(--size-touch)] px-4 text-xs",
         default: "min-h-[var(--size-touch)]",
         large: "min-h-14 px-7 text-base",
         icon: "size-[var(--size-touch)] p-0",

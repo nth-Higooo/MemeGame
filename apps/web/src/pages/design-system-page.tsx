@@ -17,16 +17,22 @@ import { GlassModal } from "../components/glass-modal";
 import { MemeCard } from "../components/meme-card";
 import { QuestionCard } from "../components/question-card";
 import { mockMemes, mockRound } from "../data/mock-data";
+import { getMessages } from "../i18n";
+
+const copy = getMessages().theme;
 
 const colors = [
-  ["Candy Pink", "#F9C6DE"],
-  ["Soft Lilac", "#C7B5F5"],
-  ["Cloud Blue", "#A9DDF7"],
-  ["Peach", "#FFC4A7"],
-  ["Periwinkle", "#8F9BEF"],
-  ["Mint", "#B9E9DA"],
-  ["Warm White", "#FFF8F7"],
-  ["Midnight", "#242B4D"],
+  ["Berry Lipstick", "--accent-berry"],
+  ["Pink Mist", "--accent-pink"],
+  ["Soft Blush", "--bg-warm-glow"],
+  ["Light Caramel", "--accent-peach"],
+  ["Jasmine", "--accent-jasmine"],
+  ["Protocol Noir", "--bg-deep"],
+  ["Bright Lavender", "--accent-lavender"],
+  ["Flucberry", "--accent-flucberry"],
+  ["Blossom", "--accent-blossom"],
+  ["Light Peach", "--accent-light-peach"],
+  ["Honeydew", "--accent-honeydew"],
 ];
 
 export function DesignSystemPage() {
@@ -35,39 +41,41 @@ export function DesignSystemPage() {
   return (
     <AppShell action={<GlassBadge tone="violet">Celestial system · Dev</GlassBadge>}>
       <div className="py-9 sm:py-12">
-        <span className="text-xs font-black uppercase tracking-[.16em] text-[#b75586]">
+        <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--accent-ink)]">
           Phase 02 · Visual language
         </span>
         <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-[-.045em] text-[var(--midnight)] sm:text-6xl">
-          Celestial Pastel Glass
+          {copy.title}
         </h1>
-        <p className="mt-3 max-w-2xl leading-7 text-[var(--ink-body)]">
-          Một hệ giao diện mềm, có chiều sâu và tiết chế: content rõ nét, glass chỉ dành cho lớp
-          nổi, minh hoạ thiên thể tạo cá tính.
-        </p>
+        <p className="mt-3 max-w-2xl leading-7 text-[var(--ink-body)]">{copy.description}</p>
 
-        <Showcase
-          title="Môi trường"
-          description="Light canvas cho Player/Admin và twilight stage dành cho màn chiếu."
-        >
-          <div className="grid gap-3 lg:grid-cols-2">
+        <Showcase title="Môi trường" description={copy.environments}>
+          <div className="grid gap-3 lg:grid-cols-3">
             <div className="relative h-52 overflow-hidden rounded-[1.25rem] border border-[#e7e2eb]">
               <CelestialBackground contained />
               <div className="relative z-10 p-5">
-                <strong className="text-[var(--midnight)]">Pastel daylight</strong>
+                <strong className="text-[var(--midnight)]">{copy.player}</strong>
                 <DecorativeSparkle className="!bottom-8 !right-8 !left-auto !top-auto !w-6" />
-                <DecorativeCloud className="!bottom-[-1rem] !left-4 !w-44" />
+                <DecorativeCloud className="!top-20 !left-4 !w-44" />
               </div>
             </div>
             <div className="relative h-52 overflow-hidden rounded-[1.25rem] border border-[#41496f]">
               <CelestialBackground contained tone="stage" />
               <div className="relative z-10 p-5 text-white">
-                <strong>Twilight stage</strong>
+                <strong>{copy.display}</strong>
                 <p className="mt-2 max-w-xs text-sm text-[#c9cde5]">
                   Tương phản mạnh để đọc rõ từ xa.
                 </p>
               </div>
             </div>
+            <GlassCard variant="dark" className="p-5">
+              <strong>{copy.admin}</strong>
+              <p className="mt-2 text-sm text-[var(--ink-body)]">{copy.adminNote}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <GlassBadge tone="success">{getMessages().common.connected}</GlassBadge>
+                <GlassButton size="small">{getMessages().admin.start}</GlassButton>
+              </div>
+            </GlassCard>
           </div>
         </Showcase>
 
@@ -75,21 +83,24 @@ export function DesignSystemPage() {
           title="Màu & typography"
           description="Pastel tạo không khí; Midnight giữ độ tương phản và neo thị giác."
         >
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
             {colors.map(([name, color]) => (
-              <div key={name} className="rounded-[.9rem] border border-[#e8e4eb] bg-[#fffdfb] p-2">
+              <div
+                key={name}
+                className="rounded-[.9rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-2"
+              >
                 <span
                   className="block aspect-square rounded-[.65rem]"
-                  style={{ background: color }}
+                  style={{ background: `var(${color})` }}
                 />
                 <strong className="mt-2 block text-xs text-[var(--midnight)]">{name}</strong>
                 <code className="text-[.58rem] text-[var(--ink-muted)]">{color}</code>
               </div>
             ))}
           </div>
-          <div className="mt-4 grid gap-3 rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-5 md:grid-cols-[1fr_1fr]">
+          <div className="mt-4 grid gap-3 rounded-[1rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-5 md:grid-cols-[1fr_1fr]">
             <div>
-              <span className="text-xs font-black uppercase tracking-[.16em] text-[#b75586]">
+              <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--accent-ink)]">
                 Display / 900
               </span>
               <p className="mt-2 text-4xl font-black tracking-[-.045em] text-[var(--midnight)]">
@@ -107,21 +118,20 @@ export function DesignSystemPage() {
           </div>
         </Showcase>
 
-        <Showcase
-          title="Surface hierarchy"
-          description="Solid/soft cho nội dung; frosted/clear cho lớp nổi ngắn."
-        >
+        <Showcase title="Surface hierarchy" description={copy.surfaceDescription}>
           <div className="grid gap-3 md:grid-cols-4">
-            {(["solid", "subtle", "regular", "clear"] as const).map((variant) => (
-              <GlassCard key={variant} className="min-h-32 p-4" variant={variant}>
-                <span className="text-xs font-black uppercase tracking-[.12em] text-[var(--periwinkle-700)]">
-                  {variant}
-                </span>
-                <p className="mt-3 text-sm leading-6 text-[var(--ink-body)]">
-                  Bề mặt có mục đích và không xếp glass lồng nhau.
-                </p>
-              </GlassCard>
-            ))}
+            {(["solid", "subtle", "regular", "clear", "pink", "peach", "dark"] as const).map(
+              (variant) => (
+                <GlassCard key={variant} className="min-h-32 p-4" variant={variant}>
+                  <span className="text-xs font-black uppercase tracking-[.12em] text-[var(--periwinkle-700)]">
+                    {variant}
+                  </span>
+                  <p className="mt-3 text-sm leading-6 text-[var(--ink-body)]">
+                    Bề mặt có mục đích và không xếp glass lồng nhau.
+                  </p>
+                </GlassCard>
+              ),
+            )}
           </div>
         </Showcase>
 
@@ -129,7 +139,7 @@ export function DesignSystemPage() {
           title="Controls"
           description="Touch target 44px, focus rõ và trạng thái semantic nhất quán."
         >
-          <div className="rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-5">
+          <div className="rounded-[1rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-5">
             <div className="flex flex-wrap gap-2">
               <GlassButton>
                 Primary <ArrowRight size={15} />
@@ -171,7 +181,7 @@ export function DesignSystemPage() {
           <div className="grid gap-3 lg:grid-cols-[.7fr_1.3fr]">
             <div className="space-y-3">
               <QuestionCard>{mockRound.prompt}</QuestionCard>
-              <div className="flex items-center gap-3 rounded-[1rem] border border-[#e8e4eb] bg-[#fffdfb] p-4">
+              <div className="flex items-center gap-3 rounded-[1rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-4">
                 <CountdownTimer seconds={24} />
                 <CountdownTimer seconds={9} />
                 <span className="text-sm text-[var(--ink-muted)]">Compact countdown</span>

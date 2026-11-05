@@ -326,3 +326,77 @@ Outstanding handoff steps:
 - Automatic path runs a read-only D1 migration-state guard and deploys only when Wrangler confirms there are no pending migrations. Database migrations stay on the manually confirmed path so a fresh backup/review is required before schema changes.
 - Added `pnpm production:check-migrations` and its safe-output checker. Added GitHub Environment setup instructions for binding variables, persistent plan/R2 acknowledgements, the auto-deploy opt-in, readiness of `ADMIN_SESSION_SECRET`, scoped API token, and optional post-deploy origin verification.
 - Verification: `pnpm format:check`, `pnpm lint`, and `pnpm typecheck` pass. No GitHub Environment variables/secrets were configured by the agent, no workflow was dispatched, and no GitHub Actions/Cloudflare deployment was run from this change. No tests were run.
+
+## Phase 02 visual follow-up — Dreamy Peachy Cosmic × Pink Glass UI
+
+Date: 2026-11-05 (Asia/Bangkok). Visual-only follow-up; the Phase 09 deployment
+work and production configuration are unchanged. Plan: [peachy-theme.md](peachy-theme.md).
+
+Phase A — completed:
+
+- Centralized semantic background, accent, glass, border, glow, action, input and
+  status tokens. Added the requested Berry Lipstick, Pink Mist, Soft Blush, Light
+  Caramel and Jasmine values, retaining all six supporting palette colors.
+- Rebalanced the existing `CelestialBackground` (the application's cosmic
+  background) with larger pink/peach haze, warm corner reflections, jasmine stars
+  and lightweight CSS holographic ovals. No bitmap or external dependency added.
+- Added pink/peach/dark `GlassCard` variants, warm buttons/badges/inputs, stronger
+  keyboard outlines, modal inheritance and opaque accessibility fallbacks.
+
+Phase B — completed:
+
+- Player: blush reading surfaces, berry CTAs/timer, pink-peach-lavender selection
+  outline, safe-area sticky submit bar and warm result/finished cards.
+- Display: midnight stage, warm blooms, readable dark panels, pink room code,
+  holographic progress/winner outline, pastel ranking and jasmine particles.
+- Admin, Judge, CMS and authentication: dark glass, warm reflected light, blush
+  text, pink/peach controls and jasmine status badges. Native form controls follow
+  the dark color scheme. Long pages retain a midnight base beneath fixed scenery.
+- Home and development showcase now share the palette; mock SVG illustrations
+  consume CSS tokens. Showcase includes all reference colors and seven surfaces.
+  New copy is in the Vietnamese locale catalog.
+- Small shared buttons, compact brand links and the authentication toggle now
+  meet 44 px sizing. QR backgrounds and media pixels remain untinted.
+- Backend game logic, WebSocket contracts, APIs, database schema, dependencies,
+  deployment configuration and existing features are unchanged.
+
+Phase C — verification:
+
+- Strict `pnpm typecheck`, `pnpm test` (55 tests), ESLint and `pnpm build` pass.
+  The final build includes Vite and Wrangler dry-run with the expected local
+  bindings. The existing main-chunk size advisory remains (~547 kB).
+- Player journeys: 8/8 pass in Chrome/WebKit. Display: 6/6 pass at 720p, 1080p and
+  WebKit, including reduced-motion media. Route shells: 9/9 pass in mobile
+  Chrome, mobile Safari and desktop Chrome.
+- Supplemental browser inspection captured 24 screens: Home, showcase/dialog,
+  Admin/Judge authentication, dark confirmation/high-contrast, all Content Studio
+  tabs, Player join/lobby/selection and Display lobby/submitting.
+  Checked 320/375/390 px Player, 1024 px tablet, 1440 px desktop,
+  1280×720 and 1920×1080 stage layouts without horizontal overflow or page errors.
+  Screenshots were manually inspected. Artifacts are ignored under
+  `artifacts/peachy-theme`; real-backend journey screenshots remain under
+  `artifacts/phase05`, `phase06` and `phase07`.
+- Checked 29 solid-surface text/action/status color pairs: minimum 4.70:1.
+  Keyboard focus and Escape-to-close, shared 44 px button targets, reduced-motion
+  cloud/interaction behavior and reduced-transparency/increased-contrast opaque
+  fallbacks pass in Chrome. This is scoped contrast evidence, not a complete
+  screen-reader or every-background-pixel accessibility certification.
+- Local QA used disposable local Wrangler data. Initial supplemental live-page
+  capture through the Vite proxy did not complete authentication; the final run
+  uses the app's single-origin local Worker and passes. The showcase remains on
+  the development server.
+- Admin/Judge journeys: 4/4 pass in Chrome and WebKit on the clean final rerun.
+  Windows-owned preview-server teardown initially stalled after cases completed;
+  a repeated run also had one WebKit Community failure during asset rebuilding.
+  The successful rerun used stable built assets, the existing local Worker and a
+  temporary config inheriting the original Admin projects/tests with `webServer: []`.
+  Route-shell verification likewise passed with `PLAYWRIGHT_SKIP_WEBSERVER=1`
+  against its already-running preview server. No assertions were skipped or changed.
+
+Remaining limitations:
+
+- No known unstyled active route remains in this color-update scope. Historical
+  unused mock-layout CSS is retained; no functionality was removed for cleanup.
+- Physical Safari/Android/tablet/projector and venue-lighting verification remain
+  pending. Tiny original GIF fixtures validate behavior/layout, not real event
+  media quality. No production deployment or production sign-off was performed.

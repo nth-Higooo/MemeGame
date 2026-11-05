@@ -76,7 +76,7 @@ function PlayerImage({
   return (
     <div ref={placeholder} className="aspect-video w-full">
       {failed ? (
-        <div className="grid h-full place-items-center bg-white/50 p-3 text-xs">
+        <div className="grid h-full place-items-center bg-[var(--surface-soft)] p-3 text-xs">
           <span role="status">{playerText.anhChuaSanSang}</span>
           <GlassButton
             variant="ghost"
@@ -89,7 +89,7 @@ function PlayerImage({
           </GlassButton>
         </div>
       ) : !visible || !url ? (
-        <div className="h-full bg-white/50" aria-label={playerText.dangTaiAnh} />
+        <div className="h-full bg-[var(--surface-soft)]" aria-label={playerText.dangTaiAnh} />
       ) : reduced && !animate ? (
         <GlassButton variant="soft" onClick={() => setAnimate(true)}>
           {playerText.phatAnhDong} {alt}
@@ -98,7 +98,7 @@ function PlayerImage({
         <img
           src={url}
           alt={alt}
-          className="aspect-video w-full rounded-2xl bg-white/60 object-contain"
+          className="aspect-video w-full rounded-2xl bg-[var(--surface-soft)] object-contain"
           loading="lazy"
           onError={() => setFailed(true)}
         />
@@ -191,7 +191,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
         .sort((a, b) => b.score - a.score || a.displayName.localeCompare(b.displayName))
         .map((player, index) => (
           <li
-            className="flex items-center justify-between rounded-2xl bg-white/70 p-3 text-sm"
+            className="flex items-center justify-between rounded-2xl bg-[var(--surface-soft)] p-3 text-sm"
             key={player.id}
           >
             <span>
@@ -385,7 +385,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                       {visible.map((asset) => (
                         <GlassCard
                           key={asset.id}
-                          className={`overflow-hidden p-2 ${selected === asset.id ? "ring-2 ring-[var(--periwinkle-700)]" : ""}`}
+                          className={`player-meme overflow-hidden p-2 ${selected === asset.id ? "player-meme-selected" : ""}`}
                         >
                           {image(asset.id, asset.altText || asset.title)}
                           <strong className="my-2 block text-sm">{asset.title}</strong>
@@ -418,7 +418,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                         {contentError || playerText.chuaCoMemePhuHopHayDoiTuKhoa}
                       </p>
                     )}
-                    <div className="sticky bottom-3 mt-4 rounded-3xl border border-white bg-white/90 p-3 shadow-lg backdrop-blur-xl">
+                    <div className="player-submit-bar sticky mt-4 rounded-3xl p-3">
                       <GlassButton
                         className="w-full"
                         disabled={disabled || !selected || selected === snapshot.ownMemeAssetId}
@@ -496,7 +496,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                   </section>
                 )}
                 {snapshot.phase === "RESULT" && (
-                  <GlassCard className="mt-4 p-6">
+                  <GlassCard variant="peach" className="player-result mt-4 p-6">
                     <h1 className="text-2xl font-black">{playerText.ketQuaVongNay}</h1>
                     {(() => {
                       const winner = snapshot.submissions.find(
@@ -529,7 +529,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                   </GlassCard>
                 )}
                 {snapshot.phase === "FINISHED" && (
-                  <GlassCard className="p-5">
+                  <GlassCard variant="pink" className="p-5">
                     <h1 className="text-2xl font-black">{playerText.buaTiecMemeDaKetThuc}</h1>
                     <p className="mt-3">
                       {playerText.camOn} {own?.displayName} {playerText.daChoiCungMoiNguoi}

@@ -45,6 +45,8 @@ export function CelestialBackground({
     >
       <div className="celestial-haze celestial-haze-one" />
       <div className="celestial-haze celestial-haze-two" />
+      <div className="celestial-orbit celestial-orbit-one" />
+      <div className="celestial-orbit celestial-orbit-two" />
       <DecorativeSparkle className="sparkle-a" />
       <DecorativeSparkle className="sparkle-b" />
       <DecorativeSparkle className="sparkle-c" />

@@ -9,6 +9,9 @@ const cardVariants = cva("surface-card relative overflow-hidden", {
       subtle: "surface-soft",
       solid: "surface-solid",
       clear: "surface-clear",
+      pink: "surface-pink",
+      peach: "surface-peach",
+      dark: "theme-dark surface-dark",
     },
     radius: {
       medium: "rounded-[var(--radius-md)]",

@@ -31,7 +31,7 @@ export function GlassModal({
       ref={dialogRef}
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className="glass-modal m-auto w-[min(92vw,30rem)] rounded-[var(--radius-xl)] p-0 text-left text-violet-950 backdrop:bg-violet-950/20 backdrop:backdrop-blur-sm"
+      className="glass-modal m-auto w-[min(92vw,30rem)] rounded-[var(--radius-xl)] p-0 text-left text-[var(--ink-strong)]"
       onCancel={onClose}
       onClose={onClose}
       onClick={(event) => event.target === event.currentTarget && onClose()}
@@ -50,7 +50,7 @@ export function GlassModal({
           {title}
         </h2>
         {description && (
-          <p id={descriptionId} className="mt-2 text-sm leading-6 text-violet-950/60">
+          <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--ink-body)]">
             {description}
           </p>
         )}
