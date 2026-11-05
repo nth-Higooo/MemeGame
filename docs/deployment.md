@@ -4,7 +4,7 @@ This guide describes the supported single-Worker deployment. The Worker serves t
 
 ## Release status and Cloudflare Free plan
 
-Phase 09 prepared the deployment workflow, but no production resources or Worker have been created. Authenticated account inspection showed no D1 database and Cloudflare returned error **10042** (“Please enable R2 through the Cloudflare Dashboard”) for the read-only R2 bucket listing. The deployment is therefore intentionally stopped before any create, migration, secret write or deploy command. No URL is available.
+The operator has activated R2, confirmed the existing D1 database and bucket are accessible, and deployed the Worker to a `workers.dev` hostname. Admin bootstrap/login required a PBKDF2 limit fix and the `ADMIN_SESSION_SECRET`; current production acceptance is still pending. This is not a production-readiness claim.
 
 For the current Cloudflare limits, check the account dashboard before each event because limits and plan terms can change. At the time this guide was reviewed, the published Free allowances include:
 
@@ -22,7 +22,7 @@ See Cloudflare's live [Workers limits](https://developers.cloudflare.com/workers
 - Node.js 22.13+, pnpm 10.20.0, and this repository's frozen lockfile.
 - A Cloudflare account on the intended account, with Workers Free and R2 activation explicitly authorized.
 - A scoped Cloudflare API token usable for Workers, D1, and R2 operations; keep it in the local shell or GitHub Actions secret store only.
-- A private GitHub repository/environment with main-branch protection if using the manual deployment workflow.
+- A GitHub repository with `main` protected by pull requests and required CI checks. The production environment is used by both automatic and manual deployment workflows.
 
 Install from a fresh checkout.
 
@@ -144,13 +144,31 @@ The full acceptance suite creates disposable production test records and a test 
 
 ## GitHub Actions deployment
 
-`.github/workflows/deploy.yml` is manual-only, main-branch-only, and uses the protected `production` GitHub Environment. Set Environment variables `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_D1_DATABASE_NAME`, `CLOUDFLARE_R2_BUCKET`, and booleans `CLOUDFLARE_FREE_PLAN_CONFIRMED=true`, `CLOUDFLARE_R2_ALREADY_ENABLED=true`. Add a scoped `CLOUDFLARE_API_TOKEN` as an Environment secret. The manual run requires explicit confirmations that the Free plan/R2 activation, backup or empty database, and Admin secret values are prepared in a password manager for immediate setup after first deploy. The workflow runs checks and build, then the read-only preflight, remote migrations and deploy. Immediately afterward, set both Admin secrets with the Wrangler prompts above before opening the event. Protect the Environment with required human reviewers; keep the token restricted to this environment. The workflow does not create resources, set application secrets, or enable billing. Set the two acknowledgement variables only after the account owner verifies the current plan and completed R2 activation.
+`.github/workflows/deploy.yml` deploys automatically on every push to `main` (normally the merge commit) and also supports a guarded manual run. It installs the frozen dependencies, runs `pnpm check` and the dependency audit, configures the local production bindings from GitHub Environment variables, checks remote D1/R2 access, builds the production Worker and deploys it. Automatic deployments **do not apply D1 migrations**. They run a read-only migration check and stop if any migration is pending or Wrangler cannot confirm the database is current. This protects the existing, data-bearing D1 database; use the manual `workflow_dispatch` inputs only after reviewing and backing up before a migration.
+
+In GitHub, open **Settings → Environments → production**. Add these Environment variables:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_D1_DATABASE_ID`
+- `CLOUDFLARE_D1_DATABASE_NAME` = `misthy-meme-db`
+- `CLOUDFLARE_R2_BUCKET` = `misthy-meme-assets`
+- `CLOUDFLARE_FREE_PLAN_CONFIRMED` = `true`
+- `CLOUDFLARE_R2_ALREADY_ENABLED` = `true`
+- `PRODUCTION_AUTO_DEPLOY_ENABLED` = `true` (arm automatic production deployment after reviewing this workflow)
+- `PRODUCTION_APP_SECRETS_READY` = `true` only after `wrangler secret list` confirms `ADMIN_SESSION_SECRET` is present in the Worker. Keep `ADMIN_BOOTSTRAP_PASSWORD` only until first Admin setup, then rotate or remove it as documented above.
+- Optional: `PRODUCTION_ORIGIN` = the verified `https://...workers.dev` origin, to run read-only deployment verification after each deploy
+
+Add `CLOUDFLARE_API_TOKEN` as an **Environment secret**, not a variable. Scope it to the Cloudflare account and the minimum Workers deployment, D1 read/info/migration-list, and R2 bucket-info permissions Wrangler requires. Never add `ADMIN_SESSION_SECRET` or `ADMIN_BOOTSTRAP_PASSWORD` to GitHub; those stay as Cloudflare Worker secrets and survive ordinary code deployments.
+
+To have merges deploy without a human approval pause, do not add required reviewers to the `production` environment. Keep `main` protected with pull requests and required checks from `.github/workflows/ci.yml`. The production job is serialized and uses read-only resource checks before publishing. A pending migration stops automatic deployment with an instruction to use the manual workflow after a current encrypted backup and review. The manual workflow still requires all three confirmations, applies migrations, then deploys. Neither path creates resources, activates R2, changes billing, or sets application secrets.
+
+The first automatic run should be a reviewed deployment after the Environment variables and secret are in place. Confirm the Actions run succeeds, then set `PRODUCTION_ORIGIN` and rerun if it was not yet configured. If deployment is not ready, leave `PRODUCTION_AUTO_DEPLOY_ENABLED` unset or false; the workflow will fail before any Cloudflare write.
 
 ## Verification and HTTPS
 
 Verify HTTPS and `/api/health`; verify `/play/<code>`, `/display/<code>`, `/admin/<code>` SPA fallback; sign in as Admin; upload and preview an original GIF; create a session; join from a phone; observe display updates and complete each mode. Confirm refresh/reconnect restoration and persisted scores. `production:verify` checks HTTPS, health response shape, SPA routes, API behavior and that protected endpoints reject unauthenticated requests. `production:acceptance` exercises both modes, media and refresh behavior.
 
-Production deployment verification is pending until R2 billing activation and remote resources are explicitly enabled. A local Wrangler rehearsal is not evidence of an edge deployment.
+Production deployment verification and full event acceptance remain pending. A local Wrangler rehearsal is not evidence of an edge deployment.
 
 ## Rollback
 

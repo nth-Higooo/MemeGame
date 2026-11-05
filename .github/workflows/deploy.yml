@@ -1,5 +1,7 @@
 name: Deploy production
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       free_plan_and_existing_r2_verified:
@@ -24,7 +26,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main' && inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified && inputs.application_secrets_prepared
+    if: >-
+      github.ref == 'refs/heads/main' && (
+        github.event_name == 'push' ||
+        (inputs.free_plan_and_existing_r2_verified && inputs.backup_or_empty_database_verified && inputs.application_secrets_prepared)
+      )
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -33,10 +39,22 @@ jobs:
       CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
       CLOUDFLARE_D1_DATABASE_NAME: ${{ vars.CLOUDFLARE_D1_DATABASE_NAME }}
       CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
-      CLOUDFLARE_FREE_PLAN_CONFIRMED: "true"
-      CLOUDFLARE_R2_ALREADY_ENABLED: "true"
+      CLOUDFLARE_FREE_PLAN_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_PLAN_CONFIRMED }}
+      CLOUDFLARE_R2_ALREADY_ENABLED: ${{ vars.CLOUDFLARE_R2_ALREADY_ENABLED }}
       WRANGLER_SEND_METRICS: "false"
     steps:
+      - name: Require automatic deployment to be armed
+        if: github.event_name == 'push'
+        env:
+          AUTO_DEPLOY_ENABLED: ${{ vars.PRODUCTION_AUTO_DEPLOY_ENABLED }}
+          APP_SECRETS_READY: ${{ vars.PRODUCTION_APP_SECRETS_READY }}
+          FREE_PLAN_CONFIRMED: ${{ vars.CLOUDFLARE_FREE_PLAN_CONFIRMED }}
+          R2_ENABLED: ${{ vars.CLOUDFLARE_R2_ALREADY_ENABLED }}
+        run: |
+          test "$AUTO_DEPLOY_ENABLED" = "true" || { echo "Set production environment variable PRODUCTION_AUTO_DEPLOY_ENABLED=true after reviewing this workflow."; exit 1; }
+          test "$APP_SECRETS_READY" = "true" || { echo "Set PRODUCTION_APP_SECRETS_READY=true after confirming ADMIN_SESSION_SECRET exists in the Worker."; exit 1; }
+          test "$FREE_PLAN_CONFIRMED" = "true" || { echo "Set CLOUDFLARE_FREE_PLAN_CONFIRMED=true after verifying account plan and limits."; exit 1; }
+          test "$R2_ENABLED" = "true" || { echo "Set CLOUDFLARE_R2_ALREADY_ENABLED=true only after R2 activation and bucket access are confirmed."; exit 1; }
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
@@ -52,8 +70,14 @@ jobs:
       - run: pnpm production:preflight
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Stop automatic deploy when D1 migrations are pending
+        if: github.event_name == 'push'
+        run: pnpm production:check-migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - run: pnpm production:build
       - run: pnpm production:migrate
+        if: github.event_name == 'workflow_dispatch'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - run: pnpm production:deploy

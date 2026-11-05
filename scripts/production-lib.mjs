@@ -101,7 +101,7 @@ export function formatProductionFailure(error) {
   return "A local config or file operation failed. Check the local production config and see docs/deployment.md. No billing change was attempted.";
 }
 
-export function wrangler(args, { capture = false, input, env = {} } = {}) {
+export function wrangler(args, { capture = false, captureStderr = false, input, env = {} } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
@@ -126,7 +126,8 @@ export function wrangler(args, { capture = false, input, env = {} } = {}) {
       child.stdout.on("data", (chunk) => {
         output += chunk;
       });
-      child.stderr.resume();
+      if (captureStderr) child.stderr.on("data", (chunk) => (output += chunk));
+      else child.stderr.resume();
     }
     if (input !== undefined) child.stdin.end(input);
     child.on("error", () => reject(new Error("Could not start the pinned Wrangler CLI")));

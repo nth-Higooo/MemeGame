@@ -53,9 +53,9 @@ Specific real-backend browser journeys: `pnpm test:player`, `pnpm test:display`,
 
 ## Production deployment
 
-The production config deploys one Worker for static assets and Hono APIs, with one SQLite Durable Object namespace, D1, and private R2. Read [deployment](docs/deployment.md) before using a Cloudflare account. Production configuration and commands do not create or activate billable services automatically. R2 activation currently requires a Cloudflare Dashboard subscription checkout; stop there unless the account owner explicitly completes that step.
+The production config deploys one Worker for static assets and Hono APIs, with one SQLite Durable Object namespace, D1, and private R2. Read [deployment](docs/deployment.md) before using a Cloudflare account. Production configuration and commands do not create resources or change billing. The operator has enabled R2 and deployed the Worker; full production acceptance is still pending.
 
-The current Phase 09 handover has **not deployed a production Worker**, and there is no verified production URL. Free-tier limits, deployment gates, backup steps, and rollback are in [deployment](docs/deployment.md). Operational guides: [Admin](docs/admin-guide.md), [Player](docs/player-guide.md), [Event Day checklist](docs/event-day-checklist.md), [Troubleshooting](docs/troubleshooting.md), and [Backup and restore](docs/backup-and-restore.md).
+Merges to `main` can automatically redeploy through GitHub Actions once the `production` Environment variables and `CLOUDFLARE_API_TOKEN` are configured. Automatic deploys stop on pending D1 migrations; see [deployment](docs/deployment.md) for the setup and manual migration path. Operational guides: [Admin](docs/admin-guide.md), [Player](docs/player-guide.md), [Event Day checklist](docs/event-day-checklist.md), [Troubleshooting](docs/troubleshooting.md), and [Backup and restore](docs/backup-and-restore.md).
 
 ## Project documentation
 

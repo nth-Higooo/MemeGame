@@ -22,6 +22,7 @@
     "production:configure": "node scripts/production.mjs configure",
     "production:check": "node scripts/production.mjs check",
     "production:preflight": "node scripts/production.mjs preflight",
+    "production:check-migrations": "node scripts/assert-no-pending-migrations.mjs",
     "production:migrate": "node scripts/production.mjs migrate",
     "production:build": "pnpm --filter @misthy/web build && wrangler deploy --dry-run --config apps/worker/wrangler.production.json --outdir dist-production",
     "production:deploy": "node scripts/production.mjs deploy",
