@@ -130,15 +130,19 @@ adminApi.post("/auth/bootstrap", async (c) => {
   ) {
     return c.json({ error: "forbidden", message: "Mã khởi tạo không hợp lệ." }, 403);
   }
+  logEvent({ event: "admin_bootstrap_stage", stage: "read_admin_count" });
   const count = await c.env.DB.prepare("SELECT count(*) AS count FROM admin_users").first<{
     count: number;
   }>();
   if ((count?.count ?? 0) > 0)
     return c.json({ error: "already_initialized", message: "Quản trị đã được khởi tạo." }, 409);
+  logEvent({ event: "admin_bootstrap_stage", stage: "validate_input" });
   const parsed = await readJson(c, adminBootstrapSchema);
   if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
   const id = crypto.randomUUID();
+  logEvent({ event: "admin_bootstrap_stage", stage: "hash_password" });
   const password = await hashPassword(parsed.data.password);
+  logEvent({ event: "admin_bootstrap_stage", stage: "insert_admin" });
   await c.env.DB.prepare(
     "INSERT INTO admin_users (id,email,display_name,password_hash,password_salt,password_iterations,role) VALUES (?,?,?,?,?,?, 'OWNER')",
   )
