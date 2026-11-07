@@ -1,5 +1,31 @@
 # Tiến độ
 
+## 2026-11-07 — Production Admin session-creation 400 investigation
+
+- Traced the Admin create flow to `POST /api/admin/sessions`; `admin-api.ts`
+  maps a `null` from `createGameSession()` to HTTP 400 `invalid_preset` with the
+  generic “Preset không tồn tại hoặc không có câu hỏi.” message.
+- Found a reproducible sample-pack integrity defect: migration 0002 attaches
+  placeholder memes only to question `...0201`, while preset `...0301` includes
+  questions `...0201` and `...0202`. Admin submits selected `assetIds`, and
+  session initialization rejects the whole pack when any included question
+  has no selected meme. The generic 400 therefore also masks this collection
+  failure. Added forward migration 0006 to attach existing non-archived
+  placeholder assets to the second sample question; it preserves existing
+  rows and is safe to reapply.
+- Added an integration regression test asserting both questions in the seeded
+  preset hydrate with selected meme assets. `qa.integration.test.ts`: 17/17
+  passed. Full `pnpm test`: 56 tests passed. `pnpm typecheck`, targeted ESLint,
+  and `pnpm build` passed; Wrangler emitted a local log-file permission warning
+  during dry-run but exited successfully.
+- Production D1 contents could not be queried during this investigation:
+  Wrangler’s stored auth token was expired and refresh failed because the
+  Cloudflare auth service was unreachable. The production preset row and its
+  live `preset_questions`/`question_meme_assets` rows therefore remain
+  unverified; do not treat the local migration fixture as proof of production
+  contents. After `wrangler login` succeeds, inspect those rows read-only
+  before applying migration 0006.
+
 Cập nhật: 2026-11-05 (Asia/Bangkok)
 
 ## Phase 01 — Foundation
@@ -400,3 +426,41 @@ Remaining limitations:
 - Physical Safari/Android/tablet/projector and venue-lighting verification remain
   pending. Tiny original GIF fixtures validate behavior/layout, not real event
   media quality. No production deployment or production sign-off was performed.
+
+## 2026-11-06 — Vietnamese typography follow-up
+
+Scope: apply the selected Bricolage Grotesque + Be Vietnam Pro pairing to the
+existing warm cosmic UI. This is a single typography follow-up to Phase 02;
+gameplay, transport, deployment configuration and package dependencies are unchanged.
+
+- `--font-display` now uses Bricolage Grotesque for semantic headings, brand text
+  and focal prompts. Real weight 800 and automatic optical sizing support the
+  playful visual direction. Home/stage spacing leaves room for Vietnamese marks.
+- `--font-sans` uses Be Vietnam Pro for body copy, controls, forms, timers and
+  room codes, with real normal weights 400–900 and system fallbacks.
+- Fourteen unmodified Latin/Vietnamese WOFF2 files total 294,020 bytes before
+  demand-based loading. They are bundled locally with Vite hashes and
+  `font-display: swap`; source URLs and SHA-256 checksums are recorded alongside
+  them. Both full SIL OFL copyright/license notices ship in `public/font-licenses`.
+- The development showcase names both families and includes stacked Vietnamese
+  diacritics, Đ and digits. New specimen copy is in `i18n/theme-vi.ts`.
+
+Verification:
+
+- `pnpm typecheck`, `pnpm test` (55 tests), `pnpm lint`, `pnpm format:check` and
+  `pnpm build` pass. The existing ~548 kB main-JS chunk advisory remains.
+- Shell journeys: 9/9 pass across Chrome and WebKit. Live Player: 8/8 pass.
+  Live Display: 6/6 pass at 720p/1080p and WebKit fallback sizes.
+- Font-specific browser inspection passes in Chrome and WebKit: both subsets
+  load for display weight 800 and all six UI weights; requests are local and
+  successful. Chrome's actual rendered-font inspection confirms the Vietnamese
+  sample uses the custom fonts without system glyph fallback. All 14 asset
+  checksums match their provenance manifest.
+- Home screenshots at 320/375/390/1440 px have no horizontal overflow. Both
+  browsers retain visible text and a fitting 320 px layout with font downloads
+  blocked. Home/showcase/font evidence is in ignored `artifacts/typography`;
+  live journey screenshots remain in `artifacts/phase05`, `phase06`, `phase07`.
+
+Physical device/projector verification remains outside this local check. Only
+normal font faces are bundled; other scripts use the system fallback. No
+production deployment was performed.

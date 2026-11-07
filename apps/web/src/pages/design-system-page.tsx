@@ -101,18 +101,22 @@ export function DesignSystemPage() {
           <div className="mt-4 grid gap-3 rounded-[1rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-5 md:grid-cols-[1fr_1fr]">
             <div>
               <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--accent-ink)]">
-                Display / 900
+                {copy.typography.displayLabel}
               </span>
-              <p className="mt-2 text-4xl font-black tracking-[-.045em] text-[var(--midnight)]">
-                Chọn cú chốt
+              <p className="mt-2 font-display text-4xl font-extrabold leading-[1.2] tracking-[-.035em] text-[var(--midnight)]">
+                {copy.typography.displaySample}
+              </p>
+              <p className="mt-3 font-display text-lg font-bold leading-8 text-[var(--ink-muted)]">
+                {copy.typography.glyphSample}
               </p>
             </div>
             <div>
               <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--ink-muted)]">
-                Body / 600
+                {copy.typography.bodyLabel}
               </span>
-              <p className="mt-2 leading-7">
-                Nội dung tiếng Việt giữ dấu rõ, nhịp đọc thoải mái và không lạm dụng chữ đậm.
+              <p className="mt-2 leading-7">{copy.typography.bodySample}</p>
+              <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">
+                {copy.typography.glyphSample}
               </p>
             </div>
           </div>

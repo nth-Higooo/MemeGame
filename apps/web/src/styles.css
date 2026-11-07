@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./assets/fonts/fonts.css";
 
 .control-live {
   color: var(--ink-strong);
@@ -67,8 +68,8 @@
 .presentation-body h1 {
   font-size: clamp(32px, 4vw, 76px);
   line-height: 1.13;
-  font-weight: 900;
-  letter-spacing: -0.045em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   overflow-wrap: anywhere;
 }
 .presentation-body p {
@@ -113,7 +114,7 @@
   width: 100%;
 }
 .presentation-join h2 {
-  font-weight: 850;
+  font-weight: 800;
   font-size: clamp(20px, 2vw, 36px);
 }
 .presentation-qr {
@@ -576,7 +577,8 @@
 }
 
 @theme {
-  --font-sans: "Nunito", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
   --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-shimmer: shimmer 1.8s ease-in-out infinite;
 }
@@ -668,10 +670,32 @@ body {
   min-height: 100dvh;
   background: var(--warm-white);
   color: var(--ink-body);
+  font-family: var(--font-sans);
+}
+
+/* Display personality stays in headings; controls and long copy use the UI face. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand-name,
+.question-card p,
+.round-question,
+.stage-title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+:where(h1, h2, h3, h4, h5, h6) {
+  font-weight: 800;
 }
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+  font-family: var(--font-sans);
 }
 button,
 a {
@@ -983,7 +1007,7 @@ input[type="checkbox"]:focus-visible {
   display: block;
   color: var(--midnight);
   font-size: 1rem;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: -0.025em;
 }
 .brand-suffix {
@@ -1166,7 +1190,7 @@ input[type="checkbox"]:focus-visible {
   margin: 0.45rem 0 0;
   color: var(--midnight);
   font-size: clamp(1.03rem, 4.9vw, 1.22rem);
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.32;
 }
@@ -1515,9 +1539,9 @@ input[type="checkbox"]:focus-visible {
   margin: 1rem 0 0;
   color: white;
   font-size: clamp(2.35rem, 4.4vw, 5rem);
-  font-weight: 900;
-  letter-spacing: -0.05em;
-  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
   text-wrap: balance;
 }
 .stage-progress {
@@ -1758,7 +1782,7 @@ input[type="checkbox"]:focus-visible {
   margin: 0.6rem 0 0;
   color: var(--midnight);
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.3;
 }
 .compact-progress {

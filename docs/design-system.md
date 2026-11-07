@@ -56,7 +56,25 @@ the palette without changes to component APIs. `.theme-dark` and
 
 ## Typography
 
-Stack ưu tiên Nunito, sau đó Segoe UI Variable/Segoe UI/system UI. Các font này hỗ trợ đầy đủ dấu tiếng Việt; không tải font ngoài để tránh dependency và flash font. Display heading dùng weight 900 có chọn lọc; body 600–700 và line-height thoáng. Player heading không vượt khoảng 28 px ở mobile.
+The 2026-11-06 typography follow-up uses **Bricolage Grotesque** for headings,
+brand text and focal prompts (`--font-display`), paired with **Be Vietnam Pro**
+for body copy, controls, forms, timers and room codes (`--font-sans`). The display
+face adds playful character to the warm cosmic theme; the UI face keeps Vietnamese
+diacritics readable at small sizes.
+
+Both families ship locally as WOFF2 with Latin and Vietnamese subsets and source
+checksums in `apps/web/src/assets/fonts`. SIL OFL licenses ship alongside the app
+from `apps/web/public/font-licenses`. Vite hashes the
+assets; no third-party font request or npm dependency is needed at runtime.
+`font-display: swap` keeps text visible during loading with Segoe UI/system
+fallbacks. Only normal faces are bundled; synthetic bold/italic remain disabled.
+
+Bricolage uses optical sizing and real weight 800 for headings (variable range
+200–800). Be Vietnam Pro includes real weights 400–900 for the existing UI hierarchy.
+Body copy starts at 400; controls retain their existing emphasis. Home/stage
+headings use roughly 1.13–1.15 line-height, prompts 1.3–1.32 and body 1.5 or more.
+Player heading sizing remains compact. The development showcase includes stacked
+Vietnamese diacritics, Đ and digits in both families for visual inspection.
 
 ## Spacing, radius và sizing
 
@@ -167,6 +185,7 @@ Supplemental theme screenshots and browser inspection are in ignored
 
 - Physical mobile devices/projectors and venue lighting remain unverified.
 - Original tiny GIF fixtures establish layout/behavior, not production-media quality.
-- No external fonts, generated bitmap assets or dependencies were added.
+- Fonts are self-hosted with their OFL licenses; no generated bitmap assets or
+  additional npm dependencies were added.
 - Historical mock-only layout selectors remain in the stylesheet; live role pages
   and the development showcase are the current styling reference.

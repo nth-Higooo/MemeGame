@@ -8,4 +8,12 @@ export const themeVi = {
   admin: "Phòng điều phối",
   adminNote: "Kính tối, ánh hồng, điều khiển rõ ràng.",
   surfaceDescription: "Blush, đào và kính tối dùng chung token theo từng giao diện.",
+  typography: {
+    displayLabel: "Tiêu đề · Bricolage Grotesque / 800",
+    displaySample: "Chọn cú chốt, cười hết cỡ!",
+    bodyLabel: "Nội dung · Be Vietnam Pro / 400",
+    bodySample:
+      "Đến lượt bạn rồi! Chọn chiếc meme đúng điệu, gửi lời chúc và cùng hội bạn quẩy hết mình.",
+    glyphSample: "Ă Ắ Ằ Ẳ Ẵ Ặ · Â Ấ Ầ Ẩ Ẫ Ậ · Đ Ê Ô Ơ Ư · ế ễ ộ ỡ ự · 0123456789",
+  },
 } as const;

@@ -32,7 +32,7 @@ export function HomePage() {
           <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--accent-ink)]">
             Birthday special · 2026
           </span>
-          <h1 className="mt-4 max-w-3xl text-balance text-5xl font-black leading-[.96] tracking-[-.055em] text-[var(--midnight)] sm:text-7xl lg:text-[5rem]">
+          <h1 className="mt-4 max-w-3xl text-balance text-5xl font-extrabold leading-[1.15] tracking-[-.035em] text-[var(--midnight)] sm:text-7xl lg:text-[5rem]">
             Meme đúng lúc,<span className="block text-[var(--periwinkle-700)]">vui đúng điệu.</span>
           </h1>
           <p className="mt-5 max-w-xl text-pretty text-base leading-7 text-[var(--ink-body)] sm:text-lg">

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { harness } from "./qa-harness.test-support";
 import { WindowLimiter } from "./protection";
-import { issueRoleTicket } from "./session-service";
+import { buildInitialState, issueRoleTicket } from "./session-service";
 import app from "./index";
 
 beforeEach(() => {
@@ -26,6 +26,46 @@ async function action(f: Fixture, value: string) {
 }
 
 describe("Phase 08 storage, security and recovery integration", () => {
+  it("creates a room from the seeded preset with a meme collection on every question", async () => {
+    const f = await harness();
+    try {
+      const assetIds = f.db.sql
+        .prepare(
+          "SELECT id FROM meme_assets WHERE source_type='PLACEHOLDER' AND status!='ARCHIVED'",
+        )
+        .all()
+        .map((row) => String(row.id));
+      const questionCollections = f.db.sql
+        .prepare(
+          `SELECT q.id, COUNT(qma.meme_asset_id) AS asset_count
+           FROM preset_questions pq
+           JOIN questions q ON q.id=pq.question_id
+           LEFT JOIN question_meme_assets qma ON qma.question_id=q.id
+           WHERE pq.preset_id='00000000-0000-4000-8000-000000000301'
+           GROUP BY q.id`,
+        )
+        .all();
+      expect(questionCollections).toHaveLength(2);
+      expect(questionCollections.every((row) => Number(row.asset_count) > 0)).toBe(true);
+
+      const state = await buildInitialState(f.env.DB, {
+        sessionId: crypto.randomUUID(),
+        sessionCode: "SEED26",
+        name: "Seeded birthday pack",
+        presetId: "00000000-0000-4000-8000-000000000301",
+      });
+      expect(state).not.toBeNull();
+      expect(state?.questions).toHaveLength(2);
+      expect(
+        state?.questions.every((question) =>
+          question.memeAssetIds.some((assetId) => assetIds.includes(assetId)),
+        ),
+      ).toBe(true);
+    } finally {
+      f.db.sql.close();
+    }
+  });
+
   it("recovers a restored D1 snapshot in an empty namespace only with a valid signed session ticket", async () => {
     const f = await harness();
     try {
