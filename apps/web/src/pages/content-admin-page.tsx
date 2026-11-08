@@ -12,7 +12,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Brand } from "../components/brand";
 import { CelestialBackground } from "../components/celestial-background";
 import { GlassBadge } from "../components/glass-badge";
@@ -502,6 +502,14 @@ function QuestionsPanel({
   run: Runner;
 }) {
   const [editing, setEditing] = useState<Question | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const selectAllMemes = () => {
+    formRef.current
+      ?.querySelectorAll<HTMLInputElement>('input[name="memeAssetIds"]')
+      .forEach((input) => {
+        input.checked = true;
+      });
+  };
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -546,7 +554,7 @@ function QuestionsPanel({
           <Plus className="mr-2 inline" size={18} />
           {editing ? "Sửa câu hỏi" : "Tạo câu hỏi"}
         </h2>
-        <form className="mt-4 space-y-3" onSubmit={save} key={editing?.id ?? "new"}>
+        <form ref={formRef} className="mt-4 space-y-3" onSubmit={save} key={editing?.id ?? "new"}>
           <label className="block text-sm font-bold">
             Tình huống
             <textarea
@@ -593,7 +601,12 @@ function QuestionsPanel({
             </select>
           </label>
           <fieldset>
-            <legend className="text-sm font-bold">Bộ meme được phép</legend>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-bold">Bộ meme được phép</span>
+              <GlassButton type="button" size="small" variant="glass" onClick={selectAllMemes}>
+                Chọn tất cả meme
+              </GlassButton>
+            </div>
             <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-3">
               {assets
                 .filter((asset) => asset.status !== "ARCHIVED")

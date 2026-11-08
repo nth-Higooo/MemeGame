@@ -1,5 +1,9 @@
 # Tiến độ
 
+## 2026-11-08 — Chọn toàn bộ meme cho câu hỏi
+
+- Added a “Chọn tất cả meme” action to the Content Studio question form. It checks every non-archived meme currently available to the question; individual selections can still be cleared before saving.
+
 ## 2026-11-08 — Player navigation lock
 
 - Kept the Meme Party logo visible on `/play/:sessionCode` but made it non-interactive, so players cannot leave the active player experience for Home by tapping the logo.
