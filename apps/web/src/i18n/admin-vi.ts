@@ -71,6 +71,13 @@ export const adminVi = {
   noSubmissions: "Chưa có meme được gửi.",
   none: "Không có winner",
   qr: "QR tham gia phòng",
+  talentQr: "QR vào trang Talent",
+  topFive: "Top 5 điểm cao nhất",
+  archiveSession: "Xóa phiên đã kết thúc",
+  archiveSessionConfirm:
+    "Ẩn phiên đã kết thúc khỏi danh sách Admin? Lịch sử và điểm vẫn được lưu để đối soát.",
+  archivedSession: "Đã ẩn phiên đã kết thúc khỏi danh sách.",
+  exceptions: "Tình huống ngoài dự tính",
   allAssets: "Chọn thư viện cho phiên mới",
   live: "Đang chạy trực tiếp",
   warningPublish:

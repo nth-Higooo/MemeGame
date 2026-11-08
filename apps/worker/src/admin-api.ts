@@ -814,6 +814,22 @@ adminApi.get("/sessions", async (c) =>
     ).results,
   }),
 );
+adminApi.delete("/sessions/:sessionCode", async (c) => {
+  const session = await c.env.DB.prepare("SELECT id,state_json FROM sessions WHERE code=?")
+    .bind(c.req.param("sessionCode"))
+    .first<{ id: string; state_json: string }>();
+  if (!session) return c.json({ error: "not_found", message: "Không tìm thấy phiên." }, 404);
+  const state = persistedGameStateSchema.parse(JSON.parse(session.state_json));
+  if (state.phase !== "FINISHED")
+    return c.json({ error: "session_active", message: "Chỉ có thể xóa phiên đã kết thúc." }, 409);
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE sessions SET status='ARCHIVED' WHERE id=?").bind(session.id),
+    c.env.DB.prepare(
+      "INSERT INTO audit_events(id,session_id,actor_type,actor_id,event_type,payload_json) VALUES(?,?,'ADMIN',?,'SESSION_ARCHIVED','{}')",
+    ).bind(crypto.randomUUID(), session.id, c.get("admin").sub),
+  ]);
+  return c.json({ ok: true, archived: true });
+});
 adminApi.get("/sessions/:sessionCode/audit", async (c) =>
   c.json({
     items: (

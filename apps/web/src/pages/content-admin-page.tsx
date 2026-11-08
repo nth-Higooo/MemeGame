@@ -19,6 +19,7 @@ import { GlassBadge } from "../components/glass-badge";
 import { GlassButton } from "../components/glass-button";
 import { GlassCard } from "../components/glass-card";
 import { GlassInput } from "../components/glass-input";
+import { GlassModal } from "../components/glass-modal";
 
 type Status = "DRAFT" | "ACTIVE" | "ARCHIVED";
 type Asset = {
@@ -284,6 +285,7 @@ function AssetsPanel({
   onFiltered: (items: Asset[]) => void;
 }) {
   const [preview, setPreview] = useState("");
+  const [editing, setEditing] = useState<Asset | null>(null);
   const upload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -314,6 +316,26 @@ function AssetsPanel({
     } catch {
       // The full refresh action remains available in the page header.
     }
+  };
+  const saveEdit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editing) return;
+    const form = new FormData(event.currentTarget);
+    await run(
+      () =>
+        api(`/assets/${editing.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            title: form.get("title"),
+            tags: String(form.get("tags") ?? "")
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+          }),
+        }),
+      "Đã cập nhật tên và tag meme.",
+    );
+    setEditing(null);
   };
   return (
     <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
@@ -405,6 +427,9 @@ function AssetsPanel({
                   {asset.category} · {asset.tags.join(", ") || "chưa có tag"}
                 </p>
                 <div className="mt-3 flex gap-2">
+                  <GlassButton size="small" variant="glass" onClick={() => setEditing(asset)}>
+                    Sửa
+                  </GlassButton>
                   <GlassButton
                     size="small"
                     variant="glass"
@@ -442,6 +467,26 @@ function AssetsPanel({
           ))}
         </div>
         {assets.length === 0 && <Empty text="Chưa có meme phù hợp." />}
+        <GlassModal open={Boolean(editing)} title="Sửa meme" onClose={() => setEditing(null)}>
+          <form className="space-y-4" onSubmit={saveEdit} key={editing?.id}>
+            <GlassInput
+              label="Tiêu đề"
+              name="title"
+              defaultValue={editing?.title}
+              required
+              maxLength={120}
+            />
+            <GlassInput
+              label="Tags"
+              name="tags"
+              hint="Phân cách bằng dấu phẩy"
+              defaultValue={editing?.tags.join(", ")}
+            />
+            <GlassButton type="submit" className="w-full">
+              Lưu thay đổi
+            </GlassButton>
+          </form>
+        </GlassModal>
       </section>
     </div>
   );

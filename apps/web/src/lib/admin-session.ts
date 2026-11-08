@@ -15,9 +15,9 @@ export class AdminHttpError extends Error {
     super(message);
   }
 }
-export async function adminRequest(path: string, body?: unknown) {
+export async function adminRequest(path: string, body?: unknown, method?: "DELETE") {
   const response = await fetch(path, {
-    method: body === undefined ? "GET" : "POST",
+    method: method ?? (body === undefined ? "GET" : "POST"),
     credentials: "same-origin",
     headers: { "Content-Type": "application/json", "X-Requested-With": "misthy-admin" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

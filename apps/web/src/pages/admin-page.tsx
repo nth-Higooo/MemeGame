@@ -101,6 +101,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
   const [presetId, setPresetId] = useState("");
   const [category, setCategory] = useState("");
   const [qr, setQr] = useState("");
+  const [judgeQr, setJudgeQr] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [audit, setAudit] = useState<ReturnType<typeof auditSchema.parse>["items"]>([]);
@@ -170,11 +171,20 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
   }, []);
   useEffect(() => {
     let active = true;
-    void QRCode.toDataURL(new URL(`/play/${sessionCode}`, location.origin).href, {
-      width: 240,
-      margin: 4,
-    }).then((value) => {
-      if (active) setQr(value);
+    void Promise.all([
+      QRCode.toDataURL(new URL(`/play/${sessionCode}`, location.origin).href, {
+        width: 240,
+        margin: 4,
+      }),
+      QRCode.toDataURL(new URL(`/judge/${sessionCode}`, location.origin).href, {
+        width: 240,
+        margin: 4,
+      }),
+    ]).then(([player, talent]) => {
+      if (active) {
+        setQr(player);
+        setJudgeQr(talent);
+      }
     });
     return () => {
       active = false;
@@ -224,6 +234,42 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
         action: value,
       });
   };
+  const archiveCompletedSession = () => {
+    if (!confirm(c.archiveSessionConfirm)) return;
+    void run(
+      () => adminRequest(`/api/admin/sessions/${sessionCode}`, undefined, "DELETE"),
+      c.archivedSession,
+    ).then(() => location.assign("/admin/MT2026"));
+  };
+  useEffect(() => {
+    if (judge || dry || !state || state.paused || confirmation || game.pending) return;
+    const advanceable = [
+      "LOBBY",
+      "QUESTION",
+      "SUBMITTING",
+      "VOTING",
+      "RESULT",
+      "LEADERBOARD",
+    ].includes(state.phase);
+    if (!advanceable) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.key !== "Enter" ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable ||
+            ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)))
+      )
+        return;
+      event.preventDefault();
+      action(state.phase === "LOBBY" ? "START" : "ADVANCE");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [judge, dry, state, confirmation, game.pending]); // action is recreated from the current authoritative state.
   const selectedPreset = presets.find((item) => item.id === presetId);
   const allowedAssets = assets
     .filter((asset) => asset.status !== "ARCHIVED" && (!category || asset.category === category))
@@ -583,9 +629,16 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                   </GlassButton>
                 </form>
               </GlassCard>
-              <GlassCard className="p-4 text-center">
-                {qr && <img src={qr} alt={c.qr} className="mx-auto w-40" />}
-                <strong className="block text-2xl tracking-widest">{sessionCode}</strong>
+              <GlassCard className="grid grid-cols-2 gap-3 p-4 text-center">
+                <div>
+                  {qr && <img src={qr} alt={c.qr} className="mx-auto w-28" />}
+                  <strong className="mt-2 block text-sm">{c.qr}</strong>
+                </div>
+                <div>
+                  {judgeQr && <img src={judgeQr} alt={c.talentQr} className="mx-auto w-28" />}
+                  <strong className="mt-2 block text-sm">{c.talentQr}</strong>
+                </div>
+                <strong className="col-span-2 block text-2xl tracking-widest">{sessionCode}</strong>
               </GlassCard>
             </aside>
           )}
@@ -619,81 +672,98 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                   {state.paused && <p className="mt-3 font-bold">{c.pause}</p>}
                   {seconds === 0 && <p>{c.expired}</p>}
                   {!judge && (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      <GlassButton
-                        variant="glass"
-                        disabled={disabled}
-                        onClick={() =>
-                          send({
-                            type: "SET_SCREEN",
-                            commandId: crypto.randomUUID(),
-                            expectedVersion: state.version,
-                            screen:
-                              state.presentationMode === "INTERMISSION" ? "AUTO" : "INTERMISSION",
-                          })
-                        }
-                      >
-                        {state.presentationMode === "INTERMISSION" ? c.showDisplay : c.hideDisplay}
-                      </GlassButton>
+                    <div className="mt-5 space-y-3">
                       {nextAction && (
                         <GlassButton
+                          className="w-full"
                           disabled={disabled || Boolean(state.paused)}
                           onClick={() => action(nextAction)}
                         >
-                          {nextLabel}
+                          {nextLabel} · Enter
                         </GlassButton>
                       )}
-                      {!["LOBBY", "FINISHED"].includes(state.phase) && (
-                        <GlassButton
-                          disabled={disabled}
-                          variant="glass"
-                          onClick={() => action(state.paused ? "RESUME" : "PAUSE")}
-                        >
-                          {state.paused ? c.resume : c.pause}
-                        </GlassButton>
-                      )}
-                      {["QUESTION", "SUBMITTING", "REVEAL", "VOTING"].includes(state.phase) && (
-                        <GlassButton
-                          disabled={disabled || Boolean(state.paused)}
-                          variant="danger"
-                          onClick={() => setConfirmation({ kind: "stop", version: state.version })}
-                        >
-                          {c.stop}
-                        </GlassButton>
-                      )}
-                      {["LOBBY", "QUESTION", "LEADERBOARD"].includes(state.phase) && (
-                        <GlassButton
-                          variant="glass"
-                          disabled={disabled}
-                          onClick={() =>
-                            send({
-                              type: "SET_MODE",
-                              commandId: crypto.randomUUID(),
-                              expectedVersion: state.version,
-                              mode: state.mode === "TALENT_MODE" ? "COMMUNITY_MODE" : "TALENT_MODE",
-                            })
-                          }
-                        >
-                          {state.mode === "TALENT_MODE" ? c.community : c.talent}
-                        </GlassButton>
-                      )}
-                      {state.phase === "QUESTION" && (
-                        <GlassButton
-                          variant="ghost"
-                          disabled={disabled}
-                          onClick={() => action("RESTART_ROUND")}
-                        >
-                          {c.restart}
-                        </GlassButton>
-                      )}
-                      {dry && state.phase === "SUBMITTING" && (
-                        <GlassButton onClick={() => simulate(false)}>
-                          {c.simulateSubmit}
-                        </GlassButton>
-                      )}
-                      {dry && state.phase === "VOTING" && (
-                        <GlassButton onClick={() => simulate(true)}>{c.simulateVote}</GlassButton>
-                      )}
+                      <details className="rounded-2xl bg-[var(--surface-soft)] p-3">
+                        <summary className="cursor-pointer text-sm font-bold">
+                          {c.exceptions}
+                        </summary>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <GlassButton
+                            variant="glass"
+                            disabled={disabled}
+                            onClick={() =>
+                              send({
+                                type: "SET_SCREEN",
+                                commandId: crypto.randomUUID(),
+                                expectedVersion: state.version,
+                                screen:
+                                  state.presentationMode === "INTERMISSION"
+                                    ? "AUTO"
+                                    : "INTERMISSION",
+                              })
+                            }
+                          >
+                            {state.presentationMode === "INTERMISSION"
+                              ? c.showDisplay
+                              : c.hideDisplay}
+                          </GlassButton>
+                          {!["LOBBY", "FINISHED"].includes(state.phase) && (
+                            <GlassButton
+                              disabled={disabled}
+                              variant="glass"
+                              onClick={() => action(state.paused ? "RESUME" : "PAUSE")}
+                            >
+                              {state.paused ? c.resume : c.pause}
+                            </GlassButton>
+                          )}
+                          {["QUESTION", "SUBMITTING", "REVEAL", "VOTING"].includes(state.phase) && (
+                            <GlassButton
+                              disabled={disabled || Boolean(state.paused)}
+                              variant="danger"
+                              onClick={() =>
+                                setConfirmation({ kind: "stop", version: state.version })
+                              }
+                            >
+                              {c.stop}
+                            </GlassButton>
+                          )}
+                          {["LOBBY", "QUESTION", "LEADERBOARD"].includes(state.phase) && (
+                            <GlassButton
+                              variant="glass"
+                              disabled={disabled}
+                              onClick={() =>
+                                send({
+                                  type: "SET_MODE",
+                                  commandId: crypto.randomUUID(),
+                                  expectedVersion: state.version,
+                                  mode:
+                                    state.mode === "TALENT_MODE" ? "COMMUNITY_MODE" : "TALENT_MODE",
+                                })
+                              }
+                            >
+                              {state.mode === "TALENT_MODE" ? c.community : c.talent}
+                            </GlassButton>
+                          )}
+                          {state.phase === "QUESTION" && (
+                            <GlassButton
+                              variant="ghost"
+                              disabled={disabled}
+                              onClick={() => action("RESTART_ROUND")}
+                            >
+                              {c.restart}
+                            </GlassButton>
+                          )}
+                          {dry && state.phase === "SUBMITTING" && (
+                            <GlassButton onClick={() => simulate(false)}>
+                              {c.simulateSubmit}
+                            </GlassButton>
+                          )}
+                          {dry && state.phase === "VOTING" && (
+                            <GlassButton onClick={() => simulate(true)}>
+                              {c.simulateVote}
+                            </GlassButton>
+                          )}
+                        </div>
+                      </details>
                     </div>
                   )}
                   {state.resultPending && (
@@ -728,15 +798,27 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     </div>
                   )}
                   {state.phase === "FINISHED" && <p className="mt-4 font-bold">{c.finish}</p>}
-                  {!judge && (
+                  {state.phase === "FINISHED" && !judge && !dry && (
                     <GlassButton
                       className="mt-3"
-                      variant="ghost"
-                      disabled={disabled}
-                      onClick={() => action("RECOVER_SESSION")}
+                      variant="danger"
+                      onClick={archiveCompletedSession}
                     >
-                      {c.recover}
+                      {c.archiveSession}
                     </GlassButton>
+                  )}
+                  {!judge && (
+                    <details className="mt-3 rounded-2xl bg-[var(--surface-soft)] p-3">
+                      <summary className="cursor-pointer text-sm font-bold">{c.exceptions}</summary>
+                      <GlassButton
+                        className="mt-3"
+                        variant="ghost"
+                        disabled={disabled}
+                        onClick={() => action("RECOVER_SESSION")}
+                      >
+                        {c.recover}
+                      </GlassButton>
+                    </details>
                   )}
                 </GlassCard>
                 <GlassCard className="p-5">
@@ -831,6 +913,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                       <ol>
                         {[...state.players]
                           .sort((a, b) => b.score - a.score)
+                          .slice(0, 5)
                           .map((p, i) => (
                             <li key={p.id} className="flex justify-between py-2 text-sm">
                               <span>
@@ -840,6 +923,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                             </li>
                           ))}
                       </ol>
+                      <p className="mt-3 text-xs font-bold text-[var(--ink-muted)]">{c.topFive}</p>
                     </GlassCard>
                   </div>
                 )}
