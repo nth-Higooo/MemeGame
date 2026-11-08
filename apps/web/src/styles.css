@@ -1068,7 +1068,8 @@ input[type="checkbox"]:focus-visible {
 }
 
 .status-badge {
-  box-shadow: inset 0 1px rgb(255 255 255 / 0.78);
+  border: 0;
+  box-shadow: 0 4px 10px rgb(52 25 48 / 0.16);
 }
 .badge-neutral {
   border-color: var(--border-card);
@@ -2141,4 +2142,142 @@ main.theme-dark {
   .meme-card:hover {
     transform: none;
   }
+}
+
+/* Phase 02 follow-up: round guidance and a focused meme stage. */
+.round-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 16px 0 24px;
+  padding: 0;
+  list-style: none;
+}
+.round-flow li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  border-bottom: 2px solid var(--border-soft);
+}
+.round-flow li span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-soft);
+}
+.round-flow li[aria-current="step"] {
+  color: var(--accent-ink);
+  border-color: currentColor;
+}
+.reveal-progress {
+  margin-top: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--surface-soft);
+  font-weight: 800;
+}
+.presentation-shell .round-flow li {
+  font-size: clamp(11px, 1vw, 18px);
+}
+.presentation-prompt {
+  margin: 20px 0;
+  padding: 18px 22px;
+  border-left: 3px solid var(--accent-pink);
+  border-radius: 0 18px 18px 0;
+  background: var(--glass-dark);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2vw, 38px);
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.presentation-shell[data-phase="REVEAL"] .presentation-carousel {
+  grid-template-rows: minmax(0, 1fr);
+}
+.presentation-reveal-heading h1 {
+  font-size: clamp(26px, 2.7vw, 52px);
+}
+
+/* Solid raised tags and status chips, shared by light and stage screens. */
+.status-badge,
+.theme-dark .status-badge,
+.connection-indicator,
+.presentation-room,
+.presentation-guests span,
+.media-chip,
+.reaction-chip {
+  border: 0;
+  backdrop-filter: none;
+  box-shadow: 0 4px 10px rgb(52 25 48 / 0.18);
+}
+.badge-neutral,
+.connection-indicator,
+.presentation-guests span,
+.media-chip {
+  background: var(--surface-solid);
+  color: var(--ink-body);
+}
+.presentation-room {
+  background: var(--action-start);
+  color: #fff5ef;
+}
+.tag-filters {
+  padding: 6px 3px 12px;
+}
+.reaction-chip {
+  background: #242b4d;
+}
+.tag-filters button {
+  flex-shrink: 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--ink-body);
+  box-shadow: 0 4px 10px rgb(52 25 48 / 0.16);
+}
+.tag-filters button[aria-pressed="true"] {
+  background: var(--action-start);
+  color: #fff5ef;
+}
+.home-play-icons {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+.home-play-tile {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--surface-solid);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-float);
+  font-size: clamp(18px, 2vw, 26px);
+}
+.home-play-tile:nth-child(2) {
+  margin-left: 24px;
+  background: var(--bg-warm-glow);
+}
+.home-play-tile svg {
+  flex-shrink: 0;
+}
+.meme-icon-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  background: var(--surface-soft);
+  color: var(--accent-ink);
 }

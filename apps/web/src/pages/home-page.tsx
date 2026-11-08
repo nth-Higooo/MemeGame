@@ -1,13 +1,20 @@
-import { ArrowRight, Gamepad2, MonitorUp, Palette, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Gamepad2,
+  MonitorUp,
+  Palette,
+  ShieldCheck,
+  Images,
+  Vote,
+  Trophy,
+} from "lucide-react";
 import { AppShell } from "../components/app-shell";
 import { DecorativeCloud, DecorativeSparkle } from "../components/celestial-background";
 import { ConnectionIndicator } from "../components/connection-indicator";
 import { GlassButton } from "../components/glass-button";
-import { MemeCard } from "../components/meme-card";
-import { mockMemes } from "../data/mock-data";
 import { getMessages } from "../i18n";
 
-const { roles: roleCopy } = getMessages();
+const { roles: roleCopy, home: copy } = getMessages();
 const roles = [
   { icon: Gamepad2, ...roleCopy.player, href: "/play/MT2026", tone: "var(--bg-warm-glow)" },
   {
@@ -26,27 +33,21 @@ const roles = [
 
 export function HomePage() {
   return (
-    <AppShell action={<ConnectionIndicator label="Sẵn sàng quẩy" />}>
+    <AppShell action={<ConnectionIndicator label={copy.ready} />}>
       <section className="grid min-h-[calc(100dvh-5rem)] items-center gap-10 py-12 lg:grid-cols-[1fr_.9fr] lg:py-16">
         <div className="relative">
-          <span className="text-xs font-black uppercase tracking-[.16em] text-[var(--accent-ink)]">
-            Birthday special · 2026
-          </span>
           <h1 className="mt-4 max-w-3xl text-balance text-5xl font-extrabold leading-[1.15] tracking-[-.035em] text-[var(--midnight)] sm:text-7xl lg:text-[5rem]">
-            Meme đúng lúc,<span className="block text-[var(--periwinkle-700)]">vui đúng điệu.</span>
+            {copy.title}
+            <span className="block text-[var(--periwinkle-700)]">{copy.subtitle}</span>
           </h1>
-          <p className="mt-5 max-w-xl text-pretty text-base leading-7 text-[var(--ink-body)] sm:text-lg">
-            Chọn chiếc GIF nói hộ lòng mình, tung cú chốt bất ngờ và cùng hội bạn tạo nên một sinh
-            nhật khó quên.
-          </p>
           <div className="mt-7 flex flex-wrap gap-2.5">
             <GlassButton asChild size="large">
               <a href="/play/MT2026">
-                Vào phòng chơi <ArrowRight aria-hidden="true" size={18} />
+                {copy.join} <ArrowRight aria-hidden="true" size={18} />
               </a>
             </GlassButton>
             <GlassButton asChild size="large" variant="glass">
-              <a href="#vai-tro">Khám phá giao diện</a>
+              <a href="#vai-tro">{copy.roles}</a>
             </GlassButton>
             {import.meta.env.DEV && (
               <GlassButton asChild size="large" variant="ghost">
@@ -61,17 +62,17 @@ export function HomePage() {
         <div className="relative mx-auto w-full max-w-[34rem] pb-7 pt-3">
           <DecorativeSparkle className="!right-2 !top-0 !w-7 !fill-[var(--accent-berry)]" />
           <DecorativeCloud className="!bottom-0 !left-[-3rem] !w-52 !opacity-80" />
-          <div className="surface-pink relative grid grid-cols-2 gap-3 rounded-[1.4rem] border border-[var(--border-soft)] p-3 shadow-[var(--shadow-float)]">
-            <MemeCard className="-rotate-2" meme={mockMemes[0]!} selected />
-            <MemeCard className="translate-y-4 rotate-2" meme={mockMemes[2]!} />
-            <div className="absolute inset-x-7 bottom-2 rounded-[1rem] border border-[var(--border-card)] bg-[var(--surface-solid)] p-3 shadow-lg">
-              <span className="text-[.6rem] font-black uppercase tracking-[.13em] text-[var(--accent-ink)]">
-                Tình huống #01
-              </span>
-              <p className="mt-1 text-sm font-black leading-snug text-[var(--midnight)] sm:text-base">
-                Khi bạn nói “chơi ván cuối” lúc 2 giờ sáng…
-              </p>
-            </div>
+          <div className="home-play-icons" aria-hidden="true">
+            {[
+              { icon: Images, label: copy.pick },
+              { icon: Vote, label: copy.vote },
+              { icon: Trophy, label: copy.result },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="home-play-tile">
+                <Icon size={64} strokeWidth={1.5} />
+                <strong>{label}</strong>
+              </div>
+            ))}
           </div>
         </div>
       </section>

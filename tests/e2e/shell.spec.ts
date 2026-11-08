@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("home exposes all three interfaces", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Meme đúng lúc/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Chọn meme/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Người chơi/i })).toHaveAttribute(
     "href",
     "/play/MT2026",

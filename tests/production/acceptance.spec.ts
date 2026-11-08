@@ -43,7 +43,7 @@ class RemoteAdmin {
 }
 async function submit(page: Page) {
   await page.getByRole("button", { name: "Chọn meme Original release GIF", exact: true }).click();
-  await page.getByRole("button", { name: "Chốt meme này", exact: true }).click();
+  await page.getByRole("button", { name: "Gửi meme này", exact: true }).click();
   await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
   await expect(page.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
 }

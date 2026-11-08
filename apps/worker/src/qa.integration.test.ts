@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { URL as NodeURL } from "node:url";
 import { harness } from "./qa-harness.test-support";
 import { WindowLimiter } from "./protection";
 import { buildInitialState, issueRoleTicket } from "./session-service";
@@ -35,6 +37,24 @@ describe("Phase 08 storage, security and recovery integration", () => {
         )
         .all()
         .map((row) => String(row.id));
+      const extraQuestionId = "6d22b7a8-e782-40cf-b1ee-7443f6ddb7e7";
+      f.db.sql
+        .prepare(
+          "INSERT INTO questions(id,text,status) VALUES(?,'Production regression question','DRAFT')",
+        )
+        .run(extraQuestionId);
+      f.db.sql
+        .prepare("INSERT INTO preset_questions(preset_id,question_id,position) VALUES(?,?,2)")
+        .run("00000000-0000-4000-8000-000000000301", extraQuestionId);
+      f.db.sql.exec(
+        readFileSync(
+          new NodeURL(
+            "../migrations/0007_repair_empty_preset_question_collections.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      );
       const questionCollections = f.db.sql
         .prepare(
           `SELECT q.id, COUNT(qma.meme_asset_id) AS asset_count
@@ -45,7 +65,7 @@ describe("Phase 08 storage, security and recovery integration", () => {
            GROUP BY q.id`,
         )
         .all();
-      expect(questionCollections).toHaveLength(2);
+      expect(questionCollections).toHaveLength(3);
       expect(questionCollections.every((row) => Number(row.asset_count) > 0)).toBe(true);
 
       const state = await buildInitialState(f.env.DB, {
@@ -55,7 +75,7 @@ describe("Phase 08 storage, security and recovery integration", () => {
         presetId: "00000000-0000-4000-8000-000000000301",
       });
       expect(state).not.toBeNull();
-      expect(state?.questions).toHaveLength(2);
+      expect(state?.questions).toHaveLength(3);
       expect(
         state?.questions.every((question) =>
           question.memeAssetIds.some((assetId) => assetIds.includes(assetId)),

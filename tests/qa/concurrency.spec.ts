@@ -255,13 +255,13 @@ for (const [mode, count] of [
       ).toBe(409);
       await Promise.all(
         pages.map((page) =>
-          expect(page.getByRole("heading", { name: "Chọn cú chốt của bạn" })).toBeVisible(),
+          expect(page.getByRole("heading", { name: "Chọn meme của bạn" })).toBeVisible(),
         ),
       );
       const first = pages[0]!;
       // One genuine UI submission, then other browsers send the same validated protocol through their actual app sockets.
       await first.getByRole("button", { name: "Chọn meme Original QA mint", exact: true }).click();
-      await first.getByRole("button", { name: "Chốt meme này", exact: true }).click();
+      await first.getByRole("button", { name: "Gửi meme này", exact: true }).click();
       await first.getByRole("button", { name: "Xác nhận", exact: true }).click();
       await expect(first.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
       await first.reload();

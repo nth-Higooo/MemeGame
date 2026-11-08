@@ -83,7 +83,7 @@ export const adminVi = {
   manualLegacy: "Phiên tự động cũ. Tạo phiên mới để dùng đầy đủ quy trình xác nhận.",
   emptyPack: "Preset hoặc thư viện chưa hợp lệ.",
   anonymous: "Ẩn danh",
-  expired: "Đã hết giờ · máy chủ đang chốt dữ liệu",
+  expired: "Đã hết giờ · đang xử lý kết quả",
   phase: "Trạng thái",
   choosePack: "Chọn gói câu hỏi",
   all: "Tất cả danh mục",

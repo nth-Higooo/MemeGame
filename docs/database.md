@@ -16,6 +16,7 @@ Never use an uploaded filename as an R2 key. Phase 03 uses `memes/YYYY/MM/<uuid>
 - `0004_talent_judging.sql`: per-session `judge_grants` with salted PBKDF2 credentials and `judge_sessions` with SHA-256 token digests, expiry, and cascading revocation. No raw Judge password or session token is stored.
 - `0005_operational_indexes.sql`: personal submission/vote/score lookups, login-time expression index, recent sessions and Judge-session expiry. Existing schemas/data remain intact; integration tests verify query-plan usage.
 - `0006_seed_preset_meme_collections.sql`: forward-only repair attaching the original placeholder meme assets to the second sample question. Admin session initialization requires every included question to retain at least one selected meme.
+- `0007_repair_empty_preset_question_collections.sql`: for the sample preset, copies its existing non-archived meme collection to any linked question with no usable collection. Existing question and meme rows remain intact.
 
 ```bash
 pnpm db:migrate:local

@@ -178,11 +178,13 @@ test("live presentation stays read-only, hides early media, restores and celebra
     ).toBeVisible();
     await expect(page.locator(".presentation-carousel figure img")).toBeVisible();
     await expect(page.locator(".presentation-body")).toHaveCSS("transform", "none");
-    const before = await page.locator(".presentation-thumbnails").boundingBox();
+    await expect(page.locator(".presentation-thumbnails")).toHaveCount(0);
+    await expect(page.locator(".presentation-prompt")).toContainText("Khi bạn hứa");
+    const before = await page.locator(".presentation-hero").boundingBox();
     await expect(page.locator(".presentation-carousel figcaption")).toContainText("Meme 2 / 2", {
       timeout: 8000,
     });
-    const after = await page.locator(".presentation-thumbnails").boundingBox();
+    const after = await page.locator(".presentation-hero").boundingBox();
     expect(Math.abs((before?.y ?? 0) - (after?.y ?? 0))).toBeLessThan(2);
     await page.screenshot({ path: `artifacts/phase06/${testInfo.project.name}-reveal.png` });
     expect(

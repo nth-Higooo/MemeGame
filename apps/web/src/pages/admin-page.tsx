@@ -477,7 +477,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     label={c.name}
                     name="name"
                     required
-                    defaultValue="MisThy Birthday Party"
+                    defaultValue={getMessages().brand.title}
                   />
                   <label className="block text-sm font-bold">
                     {c.pack}

@@ -11,6 +11,8 @@ import { GlassModal } from "../components/glass-modal";
 import { QuestionCard } from "../components/question-card";
 import { CountdownTimer } from "../components/countdown-timer";
 import { playerRequest, usePlayerSession } from "../lib/player-session";
+import { RoundFlow } from "../components/round-flow";
+import { revealPosition } from "../lib/reveal-position";
 
 const playerText = getMessages().player;
 
@@ -229,7 +231,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
       <div className="player-live mx-auto max-w-xl py-5 pb-12 [overflow-wrap:anywhere]">
         {!game.identity ? (
           <GlassCard className="p-6">
-            <GlassBadge tone="violet">MisThy Meme Party</GlassBadge>
+            <GlassBadge tone="violet">{getMessages().brand.title}</GlassBadge>
             <h1 className="mt-4 text-2xl font-black">{playerText.thamGiaPhong}</h1>
             <p className="mt-2 text-sm">{room?.name ?? playerText.dangKiemTraPhong}</p>
             {roomError && (
@@ -310,6 +312,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                     />
                   )}
                 </header>
+                <RoundFlow phase={snapshot.phase} talent={snapshot.mode === "TALENT_MODE"} />
                 {snapshot.paused && (
                   <p role="status" className="mb-3 rounded-2xl bg-amber-50 p-3 font-bold">
                     {playerText.troChoiDangTamDung}
@@ -343,12 +346,14 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                 {snapshot.phase === "QUESTION" && (
                   <GlassCard className="mt-4 p-6">
                     <h1 className="text-xl font-black">{playerText.docTinhHuongNao}</h1>
+                    <p className="mt-3 font-bold">{playerText.selectedPrompt}</p>
                     <p className="mt-3">{playerText.thuVienMemeSeMoNgaySauPhanCau}</p>
                   </GlassCard>
                 )}
                 {snapshot.phase === "SUBMITTING" && (
                   <section className="mt-4">
                     <h1 className="text-2xl font-black">{playerText.chonCuChotCuaBan}</h1>
+                    <p className="my-3 text-sm">{playerText.chooseHint}</p>
                     {snapshot.hasSubmitted && (
                       <p className="mt-2 font-bold text-emerald-700" role="status">
                         {playerText.daGuiMemeBanCoTheThayDoiTruoc}
@@ -361,9 +366,10 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                     />
-                    <div className="my-3 flex gap-2 overflow-x-auto">
+                    <div className="tag-filters my-3 flex gap-2 overflow-x-auto">
                       <GlassButton
                         size="small"
+                        aria-pressed={!tag}
                         variant={!tag ? "soft" : "ghost"}
                         onClick={() => setTag("")}
                       >
@@ -419,6 +425,13 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                       </p>
                     )}
                     <div className="player-submit-bar sticky mt-4 rounded-3xl p-3">
+                      {selected && (
+                        <p className="mb-2 text-sm font-bold" role="status">
+                          {playerText.selectedMeme(
+                            assets.find((asset) => asset.id === selected)?.title ?? "Meme",
+                          )}
+                        </p>
+                      )}
                       <GlassButton
                         className="w-full"
                         disabled={disabled || !selected || selected === snapshot.ownMemeAssetId}
@@ -443,6 +456,14 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                 {snapshot.phase === "REVEAL" && (
                   <GlassCard className="mt-4 p-6">
                     <h1 className="text-2xl font-black">{playerText.denGioTietLo}</h1>
+                    <p className="reveal-progress" role="status">
+                      {snapshot.submissions.length
+                        ? playerText.revealProgress(
+                            revealPosition(snapshot, clock + game.offset) + 1,
+                            snapshot.submissions.length,
+                          )
+                        : playerText.revealEmpty}
+                    </p>
                     <p className="mt-3">
                       {playerText.cungXemCacMemeTrenManHinhLon}{" "}
                       {snapshot.mode === "TALENT_MODE"
@@ -456,7 +477,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                     <h1 className="text-2xl font-black">{playerText.binhChonMemeYeuThich}</h1>
                     {snapshot.hasVoted ? (
                       <p role="status" className="my-3 font-bold text-emerald-700">
-                        {playerText.daBinhChonLuaChonDaKhoa}
+                        {playerText.daBinhChonLuaChonDaKhoa} {playerText.voteWait}
                       </p>
                     ) : !snapshot.canVote ? (
                       <p className="my-3">{playerText.banKhongThuocDanhSachBinhChonVongNay}</p>
@@ -474,6 +495,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                             size="small"
                             disabled={
                               disabled ||
+                              snapshot.hasVoted ||
                               !snapshot.canVote ||
                               submission.id === snapshot.ownSubmissionId
                             }
@@ -519,6 +541,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                     <p className="mt-4 font-bold">
                       {playerText.diemCuaBan} {own?.score ?? 0}
                     </p>
+                    {leaderboard()}
                   </GlassCard>
                 )}
                 {snapshot.phase === "LEADERBOARD" && (

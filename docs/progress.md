@@ -1,5 +1,40 @@
 # Tiến độ
 
+## 2026-11-08 — Meme Party UI refinement (Phase 02 follow-up)
+
+- Audit, implementation order, changed-file list, state mapping and local review
+  steps: [meme-party-refinement.md](meme-party-refinement.md).
+- Renamed visible branding, HTML title/description and the default new-session
+  name to Meme Party. Removed the requested waiting sentence from the display
+  and locale catalog. Existing user-created room names remain user content.
+- Player: round roadmap, selected-prompt explanation, library guidance,
+  selected-meme feedback, shared reveal progress, locked vote feedback and
+  round ranking. Existing join/search/preview/confirmation/final-summary flows
+  retain their server-backed behavior.
+- Display: lobby roadmap and prompt context during reveal/results; one featured
+  anonymous meme during REVEAL, with thumbnails retained for VOTING. Presentation
+  timing is shared with Player; phase transitions remain server-owned.
+- Host layout, controls, authentication, scoring and CMS are unchanged. No
+  backend, schema, transport or dependency changes were introduced. Pre-existing
+  migration 0007, Worker regression test and database documentation edits are preserved.
+- Prompt voting is not supported by the current contract; this UI uses the
+  existing preset-selected prompt. Automatic Community reveal still lasts five
+  seconds; use existing manual control for a longer showcase.
+- Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test` (56 tests),
+  `pnpm build` and `pnpm format:check` passed. Build retains the existing main
+  chunk advisory (~549 kB) and nonfatal Wrangler log-file permission warning.
+- Display Playwright: 6/6 passed at 720p, 1080p and WebKit/fallback viewports.
+  Updated assertions verify prompt context, no reveal thumbnails and stable
+  stage geometry. Player: 8/8 passed in Chrome/WebKit. Admin/Judge: 4/4 passed
+  in Chrome/WebKit, including complete Talent and Community journeys. WebKit
+  Host cases ran slowly (1.3 and 1.1 minutes) but completed successfully.
+- Browser startup initially failed because sandbox access to Wrangler's local
+  registry was denied; rerun outside the sandbox was approved. Test migrations
+  applied only to the disposable local `.wrangler/player-e2e` database.
+- Inspected the current 720p reveal and mobile selection screenshots. Media
+  fixtures are tiny original GIFs, not evidence of event-media quality. No
+  production deployment or physical-device/projector verification performed.
+
 ## 2026-11-07 — Production Admin session-creation 400 investigation
 
 - Traced the Admin create flow to `POST /api/admin/sessions`; `admin-api.ts`
@@ -22,9 +57,17 @@
   Wrangler’s stored auth token was expired and refresh failed because the
   Cloudflare auth service was unreachable. The production preset row and its
   live `preset_questions`/`question_meme_assets` rows therefore remain
-  unverified; do not treat the local migration fixture as proof of production
-  contents. After `wrangler login` succeeds, inspect those rows read-only
-  before applying migration 0006.
+  unverified at that point; do not treat the local migration fixture alone as
+  proof of production contents. The operator later supplied a read-only query
+  result confirming the preset/question rows.
+- Follow-up production query (operator supplied): preset `...0301` is `ACTIVE`
+  and has three linked `DRAFT` questions. The two seed questions each have
+  three available memes; production question `6d22b7a8-e782-40cf-b1ee-7443f6ddb7e7`
+  has zero. `wrangler d1 migrations apply` reports no pending migrations,
+  consistent with migration 0006 already having run. Added migration 0007 to
+  attach the preset's existing non-archived meme set to any linked question
+  lacking one; it does not delete or rewrite existing content. Extended the
+  regression test to reproduce this third-question case.
 
 Cập nhật: 2026-11-05 (Asia/Bangkok)
 

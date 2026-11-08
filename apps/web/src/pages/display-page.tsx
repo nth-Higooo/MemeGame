@@ -7,6 +7,8 @@ import { CelestialBackground } from "../components/celestial-background";
 import { CountdownTimer } from "../components/countdown-timer";
 import { getMessages } from "../i18n";
 import { useDisplayMedia, useDisplaySession } from "../lib/display-session";
+import { RoundFlow } from "../components/round-flow";
+import { revealPosition } from "../lib/reveal-position";
 
 const copy = getMessages().display;
 function StageImage({
@@ -143,7 +145,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
     0,
     (snapshot?.paused ? snapshot.serverTime : clock + offset) - (snapshot?.phaseStartedAt ?? clock),
   );
-  const index = Math.floor(elapsed / 5000) % Math.max(1, submissions.length);
+  const index = snapshot ? revealPosition(snapshot, clock + offset) : 0;
   const active = submissions[index];
   const winner = submissions.find((item) => item.id === snapshot?.winnerSubmissionId);
   const winnerName = snapshot?.players.find(
@@ -240,7 +242,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
         >
           {!snapshot ? (
             <div className="presentation-center">
-              <span className="presentation-eyebrow">MisThy Meme Party</span>
+              <span className="presentation-eyebrow">{getMessages().brand.title}</span>
               <h1>{status === "missing" ? copy.missing : copy.connecting}</h1>
               <p>{status === "missing" ? copy.qrError : copy.networkNote}</p>
               <strong className="presentation-big-code">{sessionCode}</strong>
@@ -252,7 +254,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                   <div>
                     <span className="presentation-eyebrow">{snapshot.name}</span>
                     <h1>{intermission ? copy.paused : copy.waiting}</h1>
-                    <p>{intermission ? copy.footer : copy.waitingHint}</p>
+                    {intermission && <p>{copy.footer}</p>}
                     <strong className="presentation-big-code">{sessionCode}</strong>
                     <p>{copy.players(snapshot.players.filter((item) => item.connected).length)}</p>
                     <div className="presentation-guests">
@@ -260,6 +262,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                         <span key={player.id}>{player.displayName}</span>
                       ))}
                     </div>
+                    <RoundFlow phase="LOBBY" talent={snapshot.mode === "TALENT_MODE"} />
                   </div>
                   <div className="presentation-join">
                     <h2>{copy.join}</h2>
@@ -295,6 +298,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                       </motion.p>
                     )}
                     <h1 data-long={(snapshot.prompt?.length ?? 0) > 140}>{snapshot.prompt}</h1>
+                    {phase === "QUESTION" && <p>{getMessages().player.selectedPrompt}</p>}
                     {phase === "SUBMITTING" && (
                       <div className="presentation-progress">
                         <div>
@@ -327,6 +331,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                       {phase === "REVEAL" ? copy.anonymous : copy.votingHint}
                     </span>
                     <h1>{phase === "REVEAL" ? copy.reveal : copy.voting}</h1>
+                    <blockquote className="presentation-prompt">{snapshot.prompt}</blockquote>
                     {snapshot.mode === "TALENT_MODE" ? (
                       <p>{copy.talent}</p>
                     ) : (
@@ -353,15 +358,20 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                           </motion.figure>
                         </AnimatePresence>
                       </div>
-                      <div className="presentation-thumbnails" aria-hidden="true">
-                        {submissions
-                          .slice(Math.floor(index / 4) * 4, Math.floor(index / 4) * 4 + 4)
-                          .map((item) => (
-                            <div key={item.id} className={item.id === active.id ? "is-active" : ""}>
-                              {image(item.memeAssetId, copy.anonymous)}
-                            </div>
-                          ))}
-                      </div>
+                      {phase === "VOTING" && (
+                        <div className="presentation-thumbnails" aria-hidden="true">
+                          {submissions
+                            .slice(Math.floor(index / 4) * 4, Math.floor(index / 4) * 4 + 4)
+                            .map((item) => (
+                              <div
+                                key={item.id}
+                                className={item.id === active.id ? "is-active" : ""}
+                              >
+                                {image(item.memeAssetId, copy.anonymous)}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="presentation-empty">{copy.empty}</div>
@@ -373,6 +383,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                   <div>
                     <span className="presentation-eyebrow">{copy.result}</span>
                     <h1>{winner ? copy.winner(winnerName ?? copy.anonymous) : copy.emptyResult}</h1>
+                    <blockquote className="presentation-prompt">{snapshot.prompt}</blockquote>
                     <p>
                       {winner
                         ? `${ranked.find((player) => player.id === winner.authorPlayerId)?.score ?? 0} ${copy.points}`
@@ -440,8 +451,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
         </button>
       )}
       <footer className="presentation-footer">
-        <span>MisThy Meme Party</span>
-        <span>{copy.footer}</span>
+        <span>{getMessages().brand.title}</span>
       </footer>
     </main>
   );
