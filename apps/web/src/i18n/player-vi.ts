@@ -9,7 +9,6 @@ export const playerVi = {
     RESULT: "Kết quả",
   },
   talentDecision: "Talent chọn",
-  selectedPrompt: "Tình huống đã được chọn từ bộ câu hỏi của phòng.",
   chooseHint: "Chọn meme phù hợp với tình huống.",
   revealProgress: (current: number, total: number) => `Đang trình chiếu meme ${current} / ${total}`,
   revealEmpty: "Chưa có meme để trình chiếu.",
@@ -36,8 +35,6 @@ export const playerVi = {
   bietDanh: "Biệt danh",
   dangThamGia: "Đang tham gia…",
   xacNhanThamGia: "Xác nhận tham gia",
-  banThamGiaAnDanhDanhTinhDuocLuu:
-    "Bạn tham gia ẩn danh. Danh tính được lưu trên trình duyệt này để khôi phục khi tải lại.",
   dangKhoiPhucDanhTinh: "Đang khôi phục danh tính…",
   daKetNoi: "Đã kết nối",
   dangKetNoi: "Đang kết nối…",
@@ -53,8 +50,7 @@ export const playerVi = {
   chao: "Chào",
   dangChoQuanTroBatDau: ". Đang chờ quản trò bắt đầu.",
   nguoiDangKetNoi: "người đang kết nối",
-  docTinhHuongChonMemeHopNhatVaGui:
-    "Đọc tình huống, chọn meme hợp nhất và gửi trước khi hết giờ. Bạn có thể đổi meme trong thời gian gửi. Khi mở bình chọn, chọn một meme của người khác.",
+  lobbyHint: "Xem tình huống · Chọn meme · Bình chọn",
   anhTinhHuong: "Ảnh tình huống",
   docTinhHuongNao: "Đọc tình huống nào!",
   thuVienMemeSeMoNgaySauPhanCau: "Thư viện meme sẽ mở ngay sau phần câu hỏi.",

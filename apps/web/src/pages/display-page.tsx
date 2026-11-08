@@ -298,7 +298,6 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                       </motion.p>
                     )}
                     <h1 data-long={(snapshot.prompt?.length ?? 0) > 140}>{snapshot.prompt}</h1>
-                    {phase === "QUESTION" && <p>{getMessages().player.selectedPrompt}</p>}
                     {phase === "SUBMITTING" && (
                       <div className="presentation-progress">
                         <div>

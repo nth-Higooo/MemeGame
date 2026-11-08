@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("home exposes all three interfaces", async ({ page }) => {
+test("home exposes all three interfaces", async ({ page }, testInfo) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Chọn meme/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Người chơi/i })).toHaveAttribute(
@@ -15,6 +15,7 @@ test("home exposes all three interfaces", async ({ page }) => {
     "href",
     "/admin/MT2026",
   );
+  await page.screenshot({ path: `artifacts/phase02/${testInfo.project.name}-home.png`, fullPage: true });
 });
 
 test("player shell is usable on mobile", async ({ page }) => {

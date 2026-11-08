@@ -62,3 +62,12 @@ open its Player and Display links, and verify both Community and Talent modes:
 
 Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`,
 `pnpm test:player`, `pnpm test:display`, `pnpm test:admin`.
+
+## Copy and chip follow-up
+
+Visible “cú chốt” wording now uses direct game terms: choose, send, vote and
+result. Home's long introductory sentence and redundant Player helper notes were
+removed. Home and mock-only cards use existing Lucide icons; live rooms keep
+using authorized meme media from the database-backed library. Tag and status
+chips have solid fills, no borders and raised shadows, including selected and
+dark-stage states.

@@ -258,9 +258,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                 {game.pending ? playerText.dangThamGia : playerText.xacNhanThamGia}
               </GlassButton>
             </form>
-            <p className="mt-4 text-xs text-[var(--ink-muted)]">
-              {playerText.banThamGiaAnDanhDanhTinhDuocLuu}
-            </p>
           </GlassCard>
         ) : (
           <>
@@ -334,9 +331,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                       {snapshot.players.filter((player) => player.connected).length}{" "}
                       {playerText.nguoiDangKetNoi}
                     </p>
-                    <p className="mt-4 text-sm leading-6">
-                      {playerText.docTinhHuongChonMemeHopNhatVaGui}
-                    </p>
+                    <p className="mt-4 text-sm leading-6">{playerText.lobbyHint}</p>
                   </GlassCard>
                 )}
                 {!["LOBBY", "FINISHED", "LEADERBOARD"].includes(snapshot.phase) &&
@@ -346,7 +341,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                 {snapshot.phase === "QUESTION" && (
                   <GlassCard className="mt-4 p-6">
                     <h1 className="text-xl font-black">{playerText.docTinhHuongNao}</h1>
-                    <p className="mt-3 font-bold">{playerText.selectedPrompt}</p>
                     <p className="mt-3">{playerText.thuVienMemeSeMoNgaySauPhanCau}</p>
                   </GlassCard>
                 )}

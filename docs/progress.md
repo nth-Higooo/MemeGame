@@ -1,5 +1,28 @@
 # Tiến độ
 
+## 2026-11-08 — Copy, icon and solid-chip refinement
+
+- Replaced visible “cú chốt/chốt meme” wording with direct labels such as
+  “Chọn meme”, “Gửi meme” and “Meme thắng vòng này” across Player, Display,
+  Admin status copy and the design showcase.
+- Removed the long Home introduction and redundant Player join/question notes.
+  Home now uses a short two-line heading and three Lucide icons for the core
+  flow. The generated-looking mock character illustration was removed from
+  Home and replaced in reusable mock cards with existing Lucide icons. Live
+  gameplay continues to render authorized meme media from the room library.
+- Tag filters and shared status/media chips now use solid fills, no borders and
+  raised shadows. Selected tags use the berry action color. The same treatment
+  applies on light and dark screens; touch targets remain at least 44 px.
+- Updated affected Playwright assertions. `pnpm typecheck`, `pnpm lint`,
+  `pnpm test` (56 tests), `pnpm build` and `pnpm format:check` passed. The
+  existing ~544 kB main-chunk advisory and nonfatal Wrangler log warning remain.
+- Targeted Home journey passed in desktop Chrome. Player journeys passed 8/8
+  in Chrome and WebKit. The broader 9-case shell run executed all cases but its
+  preview teardown stalled on Windows, so it is not recorded as passed.
+- Inspected the final desktop Home and mobile Player-selection screenshots for
+  copy density, icon composition, chip state and horizontal fit. No generated
+  image service, new image asset, dependency, backend or database change was used.
+
 ## 2026-11-08 — Meme Party UI refinement (Phase 02 follow-up)
 
 - Audit, implementation order, changed-file list, state mapping and local review
