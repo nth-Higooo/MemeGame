@@ -19,11 +19,11 @@ An in-flight command blocks repeat taps. On reconnect it is retried with the sam
 ## Phase screens
 
 - Lobby confirms nickname, connected count, and instructions.
-- Question presents the real prompt, optional attachment, and deadline countdown.
-- Submitting displays the question's allowed asset collection, title/tag search, preview, selection, confirmation, and replacement before deadline.
+- Question presents the real prompt, optional attachment, and deadline countdown beneath a compact nickname/round header.
+- Submitting keeps the same prompt directly above the allowed meme grid, title/tag search, preview, selection, confirmation, and replacement before deadline; mode, score, and round-roadmap chrome are omitted from the active play view.
 - Reveal asks players to follow the shared display and wait for voting or Talent decision.
 - Community voting shows anonymous submissions, disables the player's own submission, checks voter eligibility, and locks after confirmation.
-- Result shows the winning meme, public winner identity, and updated personal score.
+- Result shows the winning meme, public winner identity, and updated personal score for 30 seconds; the ranking appears only after the authoritative transition to Leaderboard.
 - Leaderboard/final screen sorts scores and shows server-derived totals for submitted rounds, votes, and wins.
 
 ## Media and accessibility

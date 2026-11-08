@@ -88,7 +88,8 @@ export function JudgePage({ sessionCode }: { sessionCode: string }) {
 }
 
 function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judge?: boolean }) {
-  const [authenticated, setAuthenticated] = useState(judge);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [judgeAttempt, setJudgeAttempt] = useState(0);
   const [dry, setDry] = useState<PersistedGameState | null>(null);
   const game = useAdminSession(sessionCode, judge ? "JUDGE" : "ADMIN", authenticated && !dry);
   const [sessions, setSessions] = useState<ReturnType<typeof adminSessionsSchema.parse>["items"]>(
@@ -146,6 +147,23 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
       active = false;
     };
   }, [judge]);
+  useEffect(() => {
+    if (!judge) return;
+    let active = true;
+    void adminRequest(`/api/judge/${sessionCode}/login`, {})
+      .then(() => {
+        if (active) {
+          setError("");
+          setAuthenticated(true);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) setError(caught instanceof Error ? caught.message : c.offline);
+      });
+    return () => {
+      active = false;
+    };
+  }, [judge, judgeAttempt, sessionCode]);
   useEffect(() => {
     const timer = setInterval(() => setClock(Date.now()), 500);
     return () => clearInterval(timer);
@@ -322,15 +340,6 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
       });
     setConfirmation(null);
   };
-  const loginJudge = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    await run(async () => {
-      await adminRequest(`/api/judge/${sessionCode}/login`, { password: data.get("password") });
-      setAuthenticated(true);
-      game.reconnect();
-    });
-  };
   if (!judge && (!authenticated || game.status === "unauthorized"))
     return (
       <AdminLogin
@@ -349,11 +358,14 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
         <GlassCard className="relative w-full max-w-md p-6">
           <Brand />
           <h1 className="mt-5 text-2xl font-black">{c.judgeTitle}</h1>
-          <form className="mt-5 space-y-4" onSubmit={loginJudge}>
-            <GlassInput label={c.password} name="password" type="password" required />
-            <GlassButton type="submit">{c.signIn}</GlassButton>
-          </form>
-          {error && <p role="alert">{error}</p>}
+          <p className="mt-4" role={error ? "alert" : "status"}>
+            {error || c.judgeConnecting}
+          </p>
+          {error && (
+            <GlassButton className="mt-5" onClick={() => setJudgeAttempt((value) => value + 1)}>
+              {c.reconnect}
+            </GlassButton>
+          )}
         </GlassCard>
       </main>
     );
@@ -408,23 +420,20 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
             <GlassBadge tone={dry ? "violet" : game.status === "connected" ? "success" : "danger"}>
               {dry ? c.dryBanner : game.status === "connected" ? c.connected : c.offline}
             </GlassBadge>
-            <GlassButton
-              variant="ghost"
-              size="small"
-              onClick={() =>
-                void run(async () => {
-                  if (judge) {
-                    await adminRequest(`/api/judge/${sessionCode}/logout`, {});
-                    setAuthenticated(false);
-                  } else {
+            {!judge && (
+              <GlassButton
+                variant="ghost"
+                size="small"
+                onClick={() =>
+                  void run(async () => {
                     await adminRequest("/api/admin/auth/logout", {});
                     setAuthenticated(false);
-                  }
-                })
-              }
-            >
-              {c.logout}
-            </GlassButton>
+                  })
+                }
+              >
+                {c.logout}
+              </GlassButton>
+            )}
           </div>
         </header>
         {(error || game.error) && (
@@ -849,21 +858,12 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                       void run(async () => {
                         await adminRequest(`/api/admin/sessions/${sessionCode}/judge`, {
                           displayName: data.get("displayName"),
-                          password: data.get("password"),
                         });
                         form.reset();
                       }, c.judgeCreated);
                     }}
                   >
                     <GlassInput label={c.judgeName} name="displayName" required />
-                    <GlassInput
-                      label={c.password}
-                      name="password"
-                      type="password"
-                      minLength={12}
-                      required
-                      autoComplete="new-password"
-                    />
                     <GlassButton type="submit" disabled={!state}>
                       {c.configure}
                     </GlassButton>

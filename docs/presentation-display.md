@@ -17,9 +17,9 @@ Use the application's public HTTPS origin when presenting to participants. The Q
 - Lobby: large session code, QR join link, current connected count, and recent nicknames.
 - Question: introduction on the first round, large prompt, optional attachment, and server deadline.
 - Submitting: prompt, submission count, and progress bar. No submitted meme is exposed.
-- Reveal: anonymous, stable-size GIF stage and thumbnails. The stage cycles every five seconds without changing the server phase.
+- Reveal: the situation appears by itself in quotation marks beside the anonymous, stable-size GIF stage. The stage cycles every five seconds without changing the server phase.
 - Voting: anonymous memes, voting deadline, and aggregate participation count. Individual vote totals and submission authors remain hidden until results.
-- Result: winner identity, winning meme, and the winner's cumulative score.
+- Result: winner identity, winning meme, cumulative score, and a radial star-confetti burst. The server keeps this screen for 30 seconds before automatically opening the leaderboard.
 - Leaderboard: score order with spring transitions; eight players per page, advancing every ten seconds for larger rooms.
 - Finished: final ranking, leading player, and a brief celebration.
 

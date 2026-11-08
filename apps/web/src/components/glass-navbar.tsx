@@ -5,10 +5,12 @@ import { Brand } from "./brand";
 export function GlassNavbar({
   action,
   compact = false,
+  brandLinked = true,
   className,
 }: {
   action?: ReactNode;
   compact?: boolean;
+  brandLinked?: boolean;
   className?: string;
 }) {
   return (
@@ -18,7 +20,7 @@ export function GlassNavbar({
         className,
       )}
     >
-      <Brand compact={compact} />
+      <Brand compact={compact} linked={brandLinked} />
       {action}
     </nav>
   );

@@ -15,13 +15,18 @@ test("home exposes all three interfaces", async ({ page }, testInfo) => {
     "href",
     "/admin/MT2026",
   );
-  await page.screenshot({ path: `artifacts/phase02/${testInfo.project.name}-home.png`, fullPage: true });
+  await page.screenshot({
+    path: `artifacts/phase02/${testInfo.project.name}-home.png`,
+    fullPage: true,
+  });
 });
 
 test("player shell is usable on mobile", async ({ page }) => {
   await page.goto("/play/MT2026");
   await expect(page.getByRole("heading", { name: "Tham gia phòng" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Xác nhận tham gia" })).toBeVisible();
+  await expect(page.locator("nav .brand-mark")).toBeVisible();
+  await expect(page.locator('nav a[href="/"]')).toHaveCount(0);
 });
 
 test("display and admin shells resolve session routes", async ({ page }) => {

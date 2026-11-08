@@ -173,9 +173,8 @@ test("live presentation stays read-only, hides early media, restores and celebra
     await expect(page.getByText("Bữa tiệc đang tạm nghỉ")).toBeVisible();
     await room.admin.action("RESUME");
     await room.admin.action("ADVANCE");
-    await expect(
-      page.getByRole("heading", { name: "Sân khấu của những chiếc meme" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Khi bạn hứa/ })).toBeVisible();
+    await expect(page.getByText("Sân khấu của những chiếc meme")).toHaveCount(0);
     await expect(page.locator(".presentation-carousel figure img")).toBeVisible();
     await expect(page.locator(".presentation-body")).toHaveCSS("transform", "none");
     await expect(page.locator(".presentation-thumbnails")).toHaveCount(0);
@@ -201,9 +200,7 @@ test("live presentation stays read-only, hides early media, restores and celebra
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(page.getByText("Kết nối gián đoạn · đang đồng bộ lại")).toHaveCount(0);
     await page.reload();
-    await expect(
-      page.getByRole("heading", { name: "Sân khấu của những chiếc meme" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Khi bạn hứa/ })).toBeVisible();
     const state = room.admin.messages.filter((message) => message.type === "STATE_SYNC").at(-1) as {
       state: { submissions: { id: string }[] };
     };
@@ -214,8 +211,10 @@ test("live presentation stays read-only, hides early media, restores and celebra
     await expect(
       page.getByRole("heading", { name: "Ngôi sao meme thắng vòng này!" }),
     ).toBeVisible();
+    await expect(page.locator(".presentation-confetti i")).toHaveCount(28);
+    await expect(page.locator(".presentation-confetti i").first()).toHaveText("★");
     await room.admin.action("ADVANCE");
-    await expect(page.getByRole("heading", { name: "Những ngôi sao của bữa tiệc" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Bảng xếp hạng" })).toBeVisible();
     await room.admin.action("ADVANCE");
     await expect(page.getByRole("heading", { name: "Cảm ơn vì đã quẩy hết mình!" })).toBeVisible();
     await page.screenshot({ path: `artifacts/phase06/${testInfo.project.name}-final.png` });

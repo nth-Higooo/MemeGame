@@ -200,6 +200,7 @@ describe("realtime game engine", () => {
     ).toThrow(/Vai trò/);
     current = applyGameCommand(current, publish, admin, 5300).state;
     expect(current.phase).toBe("RESULT");
+    expect(current.phaseEndsAt).toBe(35_300);
     expect(current.players[0]?.score).toBe(100);
     expect(applyGameCommand(current, publish, admin, 5400).duplicate).toBe(true);
     expect(() => adminCommand(current, "RESTART_ROUND", 5500)).toThrow(/đã công bố/);
@@ -224,8 +225,9 @@ describe("realtime game engine", () => {
       delta: -10,
       reason: "Sửa điểm theo luật",
     });
-    current = adminCommand(correction.state, "ADVANCE", 6000);
-    current = adminCommand(current, "ADVANCE", 7000);
+    current = applyDeadline(correction.state, correction.state.phaseEndsAt!).state;
+    expect(current.phase).toBe("LEADERBOARD");
+    current = adminCommand(current, "ADVANCE", 36_000);
     expect(current.phase).toBe("FINISHED");
   });
   it("holds Community results and accepts only confirmed, current-version overrides", () => {
@@ -359,6 +361,7 @@ describe("realtime game engine", () => {
     current = applyDeadline(current, current.phaseEndsAt!).state;
     expect(current.phase).toBe("RESULT");
     expect(current.round?.winnerSubmissionId).toBeNull();
+    expect(current.phaseEndsAt! - current.phaseStartedAt!).toBe(30_000);
     current = applyDeadline(current, current.phaseEndsAt!).state;
     expect(current.phase).toBe("LEADERBOARD");
     current = applyDeadline(current, current.phaseEndsAt!).state;

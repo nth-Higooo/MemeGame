@@ -30,7 +30,7 @@ The server persists `phaseStartedAt` and an absolute UTC millisecond `phaseEndsA
 
 One Durable Object alarm is scheduled for the current deadline. Alarms are idempotent: the handler checks that the stored deadline is due before advancing. The next transition persists a new deadline and replaces the alarm. Talent selection, lobby, pause, finished state, and manual tie decisions have no alarm.
 
-Legacy automated presentation durations are five seconds for question/reveal and eight seconds for result/leaderboard. Manual sessions leave these phases untimed. Submission and voting durations come from the copied question/configuration. Manual submission expiry persists `deadlineExpired` and holds the phase until explicit reveal; it removes the alarm and rejects late submissions even after pause/resume. Manual voting expiry returns to reveal with a private proposal. The persisted flag makes repeated alarms safe.
+Automated presentation durations are five seconds for question/reveal, 30 seconds for result, and eight seconds for leaderboard. A published result receives the same authoritative 30-second deadline in both manual and automated sessions, then advances to `LEADERBOARD`; other manual presentation phases remain operator-controlled. Submission and voting durations come from the copied question/configuration. Manual submission expiry persists `deadlineExpired` and holds the phase until explicit reveal; it removes the alarm and rejects late submissions even after pause/resume. Manual voting expiry returns to reveal with a private proposal. The persisted flag makes repeated alarms safe.
 
 ## Identity and connections
 
@@ -95,8 +95,8 @@ Phase 08 caches validated state while the object remains warm; activation and ex
 - `POST /api/sessions/:code/display-ticket` — returns a read-only display ticket.
 - `POST /api/admin/sessions/:code/ticket` — authenticated Admin/Display ticket issuance; Judge requests rejected.
 - `GET /api/admin/sessions` and `GET /api/admin/sessions/:code/audit` — protected session management and recent audit history.
-- `POST /api/admin/sessions/:code/judge` — provision/rotate a separate Judge credential for manual sessions.
-- `POST /api/judge/:code/login`, `/ticket`, `/logout` — separate protected Judge session and connection-ticket lifecycle.
+- `POST /api/admin/sessions/:code/judge` — provision/rotate a separate Talent grant for manual sessions.
+- `POST /api/judge/:code/login`, `/ticket`, `/logout` — passwordless Talent session and connection-ticket lifecycle, available only while that room grant is active.
 - `GET /ws/:code` with protocols `misthy-v1, <ticket>` — hibernating WebSocket upgrade.
 - `GET /api/sessions/:code` — public room name/status validation.
 - `GET /api/sessions/:code/content` — bearer-authenticated current-phase asset metadata and personal participation totals.

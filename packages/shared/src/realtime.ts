@@ -308,9 +308,7 @@ export const playerContentSchema = z.object({
 
 export const judgeCredentialSchema = z.object({
   displayName: z.string().trim().min(1).max(80),
-  password: z.string().min(12).max(128),
 });
-export const judgeLoginSchema = z.object({ password: z.string().min(1).max(128) });
 export const adminSessionsSchema = z.object({
   items: z.array(
     z.object({ id: entityIdSchema, code: sessionCodeSchema, name: z.string(), status: z.string() }),

@@ -123,7 +123,7 @@ pnpm exec wrangler secret put ADMIN_SESSION_SECRET --config apps/worker/wrangler
 pnpm exec wrangler secret put ADMIN_BOOTSTRAP_PASSWORD --config apps/worker/wrangler.production.json
 ```
 
-Use strong, unique values stored in a password manager. Never put them in command arguments, `.env`, Wrangler `vars`, `VITE_*`, logs, or source control. Create the first Admin owner with the one-time bootstrap password, then rotate/remove that bootstrap secret. Judge credentials are provisioned separately in the Admin UI. On later releases, `wrangler secret put` remains available to rotate a secret and creates a Worker version immediately.
+Use strong, unique values stored in a password manager. Never put them in command arguments, `.env`, Wrangler `vars`, `VITE_*`, logs, or source control. Create the first Admin owner with the one-time bootstrap password, then rotate/remove that bootstrap secret. Talent access is provisioned separately in the Admin UI without a password. On later releases, `wrangler secret put` remains available to rotate a secret and creates a Worker version immediately.
 
 After deployment, obtain the generated `workers.dev` URL from the Wrangler output or Dashboard, then run:
 

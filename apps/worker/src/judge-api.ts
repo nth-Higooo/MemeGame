@@ -1,8 +1,8 @@
+import { sessionCodeSchema } from "@misthy/shared";
 import { Hono } from "hono";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { judgeLoginSchema, sessionCodeSchema } from "@misthy/shared";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { digestText } from "./auth";
 import type { Env } from "./env";
-import { digestText, verifyPassword } from "./auth";
 import { createReconnectToken, issueConnectionTicket } from "./realtime-auth";
 
 const judgeApi = new Hono<{ Bindings: Env }>();
@@ -15,42 +15,18 @@ judgeApi.use("*", async (c, next) => {
     return c.json({ message: "Yêu cầu không hợp lệ." }, 403);
   await next();
 });
+
 judgeApi.post("/:code/login", async (c) => {
   const code = sessionCodeSchema.safeParse(c.req.param("code"));
-  const input = judgeLoginSchema.safeParse(await c.req.json().catch(() => null));
-  if (!code.success || !input.success) return c.json({ message: "Thông tin không hợp lệ." }, 400);
-  const email = `judge:${code.data}`;
-  const ip = await digestText(c.req.header("CF-Connecting-IP") ?? "local");
-  const count = await c.env.DB.prepare(
-    "SELECT count(*) AS count FROM admin_login_attempts WHERE email=? AND ip_hash=? AND succeeded=0 AND julianday(created_at)>julianday('now','-15 minutes')",
-  )
-    .bind(email, ip)
-    .first<{ count: number }>();
-  if ((count?.count ?? 0) >= 5) return c.json({ message: "Thử lại sau 15 phút." }, 429);
+  if (!code.success) return c.json({ message: "Mã phòng không hợp lệ." }, 400);
+
   const grant = await c.env.DB.prepare(
-    "SELECT g.* FROM judge_grants g JOIN sessions s ON s.id=g.session_id WHERE s.code=? AND g.active=1",
+    "SELECT g.id FROM judge_grants g JOIN sessions s ON s.id=g.session_id WHERE s.code=? AND g.active=1",
   )
     .bind(code.data)
-    .first<{
-      id: string;
-      password_hash: string;
-      password_salt: string;
-      password_iterations: number;
-    }>();
-  const valid =
-    grant &&
-    (await verifyPassword(
-      input.data.password,
-      grant.password_hash,
-      grant.password_salt,
-      grant.password_iterations,
-    ));
-  await c.env.DB.prepare(
-    "INSERT INTO admin_login_attempts(id,email,ip_hash,succeeded) VALUES(?,?,?,?)",
-  )
-    .bind(crypto.randomUUID(), email, ip, valid ? 1 : 0)
-    .run();
-  if (!valid || !grant) return c.json({ message: "Mật khẩu Talent không đúng." }, 401);
+    .first<{ id: string }>();
+  if (!grant) return c.json({ message: "Phòng chưa bật quyền Talent." }, 401);
+
   const token = createReconnectToken();
   await c.env.DB.prepare("INSERT INTO judge_sessions(token_hash,grant_id,expires_at) VALUES(?,?,?)")
     .bind(await digestText(token), grant.id, Date.now() + 8 * 3600000)
@@ -64,9 +40,10 @@ judgeApi.post("/:code/login", async (c) => {
   });
   return c.json({ ok: true });
 });
+
 judgeApi.post("/:code/ticket", async (c) => {
   const cookie = getCookie(c, "misthy_judge");
-  if (!cookie) return c.json({ message: "Đăng nhập Talent để tiếp tục." }, 401);
+  if (!cookie) return c.json({ message: "Mở lại trang Talent để kết nối." }, 401);
   const grant = await c.env.DB.prepare(
     "SELECT g.id,s.id AS session_id,s.code,j.expires_at FROM judge_sessions j JOIN judge_grants g ON g.id=j.grant_id JOIN sessions s ON s.id=g.session_id WHERE j.token_hash=? AND g.active=1 AND s.code=? AND j.expires_at>?",
   )
@@ -86,6 +63,7 @@ judgeApi.post("/:code/ticket", async (c) => {
   );
   return c.json({ connection: { url: `/ws/${grant.code}`, protocols: ["misthy-v1", token] } });
 });
+
 judgeApi.post("/:code/logout", async (c) => {
   const cookie = getCookie(c, "misthy_judge");
   if (cookie)
@@ -95,4 +73,5 @@ judgeApi.post("/:code/logout", async (c) => {
   deleteCookie(c, "misthy_judge", { path: "/api/judge" });
   return c.json({ ok: true });
 });
+
 export { judgeApi };

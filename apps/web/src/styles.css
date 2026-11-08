@@ -462,12 +462,14 @@
 }
 .presentation-confetti i {
   position: absolute;
-  top: -30px;
+  top: 50%;
+  left: 50%;
   color: var(--accent-jasmine);
-  font-size: 26px;
+  font-size: clamp(18px, 2.4vw, 42px);
   font-style: normal;
   opacity: 0;
-  animation: presentation-sparkle 3s ease-out 2;
+  filter: drop-shadow(0 0 10px currentColor);
+  animation: presentation-star-burst 1.6s cubic-bezier(0.16, 0.8, 0.3, 1) var(--star-delay) 1 both;
 }
 .presentation-confetti i:nth-child(3n) {
   color: var(--accent-pink);
@@ -475,17 +477,19 @@
 .presentation-confetti i:nth-child(3n + 1) {
   color: var(--accent-peach);
 }
-@keyframes presentation-sparkle {
+@keyframes presentation-star-burst {
   0% {
     opacity: 0;
-    transform: translateY(0) rotate(0);
+    transform: translate(-50%, -50%) scale(0.15) rotate(0);
   }
-  20% {
-    opacity: 0.6;
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15) rotate(25deg);
   }
   100% {
     opacity: 0;
-    transform: translateY(60vh) rotate(90deg);
+    transform: translate(calc(-50% + var(--star-x)), calc(-50% + var(--star-y))) scale(0.65)
+      rotate(var(--star-rotate));
   }
 }
 @media (max-width: 800px), (max-height: 540px) {

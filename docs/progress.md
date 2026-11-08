@@ -1,5 +1,12 @@
 # Tiến độ
 
+## 2026-11-08 — Player navigation lock
+
+- Kept the Meme Party logo visible on `/play/:sessionCode` but made it non-interactive, so players cannot leave the active player experience for Home by tapping the logo.
+- Home, Display, Admin and other shared-shell routes retain the existing Home link. Added a shell regression assertion for the Player route.
+- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (56 tests) and `pnpm build` passed. The existing ~544 kB main-chunk advisory and nonfatal Wrangler log warning remain.
+- The targeted mobile-Chrome shell case could not be recorded as passed: the bundled Playwright Chromium was unavailable, and the system-Chrome retry stalled after the expected local API proxy refusal because the Worker was not running. No production deployment was performed.
+
 ## 2026-11-08 — Copy, icon and solid-chip refinement
 
 - Replaced visible “cú chốt/chốt meme” wording with direct labels such as

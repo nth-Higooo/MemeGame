@@ -11,7 +11,6 @@ import { GlassModal } from "../components/glass-modal";
 import { QuestionCard } from "../components/question-card";
 import { CountdownTimer } from "../components/countdown-timer";
 import { playerRequest, usePlayerSession } from "../lib/player-session";
-import { RoundFlow } from "../components/round-flow";
 import { revealPosition } from "../lib/reveal-position";
 
 const playerText = getMessages().player;
@@ -227,7 +226,20 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
   };
 
   return (
-    <AppShell compactNav action={<GlassBadge tone="violet">{sessionCode}</GlassBadge>}>
+    <AppShell
+      compactNav
+      brandLinked={false}
+      action={
+        game.identity && snapshot ? (
+          <strong className="max-w-[70vw] truncate text-right text-sm text-[var(--midnight)]">
+            {own?.displayName ?? playerText.dangKhoiPhucDanhTinh} ·{" "}
+            {playerText.round(Math.max(1, snapshot.roundNumber), snapshot.totalRounds)}
+          </strong>
+        ) : (
+          <GlassBadge tone="violet">{sessionCode}</GlassBadge>
+        )
+      }
+    >
       <div className="player-live mx-auto max-w-xl py-5 pb-12 [overflow-wrap:anywhere]">
         {!game.identity ? (
           <GlassCard className="p-6">
@@ -261,22 +273,13 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
           </GlassCard>
         ) : (
           <>
-            <div className="mb-4 flex items-center justify-between gap-2 text-xs font-bold">
-              <span className="min-w-0 truncate">
-                {own?.displayName ?? playerText.dangKhoiPhucDanhTinh}
-              </span>
-              <span role="status">
-                {game.status === "connected"
-                  ? playerText.daKetNoi
-                  : game.status === "connecting"
-                    ? playerText.dangKetNoi
-                    : playerText.matKetNoiDangThuLai}
-              </span>
-            </div>
             {game.status !== "connected" && (
-              <GlassButton variant="glass" size="small" onClick={game.reconnect}>
-                {playerText.ketNoiLai}
-              </GlassButton>
+              <div className="mb-4 flex items-center justify-between gap-3" role="status">
+                <span className="text-sm font-bold">{playerText.matKetNoiDangThuLai}</span>
+                <GlassButton variant="glass" size="small" onClick={game.reconnect}>
+                  {playerText.ketNoiLai}
+                </GlassButton>
+              </div>
             )}
             {!snapshot && (
               <p className="mt-6" role="status">
@@ -285,41 +288,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
             )}
             {snapshot && (
               <>
-                <header className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <GlassBadge tone="violet">
-                      {snapshot.phase === "LOBBY"
-                        ? playerText.sanSangNhapTiec
-                        : playerText.round(snapshot.roundNumber, snapshot.totalRounds)}
-                    </GlassBadge>
-                    <p className="mt-2 text-sm font-bold">
-                      {snapshot.mode === "COMMUNITY_MODE"
-                        ? playerText.congDongBinhChon
-                        : playerText.talentChonWinner}{" "}
-                      · {own?.score ?? 0} {playerText.diem}
-                    </p>
-                  </div>
-                  {seconds !== null && (
-                    <CountdownTimer
-                      seconds={seconds}
-                      total={Math.max(
-                        1,
-                        ((snapshot.phaseEndsAt ?? 0) - (snapshot.phaseStartedAt ?? 0)) / 1000,
-                      )}
-                    />
-                  )}
-                </header>
-                <RoundFlow phase={snapshot.phase} talent={snapshot.mode === "TALENT_MODE"} />
-                {snapshot.paused && (
-                  <p role="status" className="mb-3 rounded-2xl bg-amber-50 p-3 font-bold">
-                    {playerText.troChoiDangTamDung}
-                  </p>
-                )}
-                {expired && (
-                  <p role="status" className="mb-3 rounded-2xl bg-amber-50 p-3 font-bold">
-                    {playerText.daHetThoiGianDangChoMayChuChuyen}
-                  </p>
-                )}
                 {snapshot.phase === "LOBBY" && (
                   <GlassCard className="p-6">
                     <h1 className="text-2xl font-black">{playerText.banDaVaoPhong}</h1>
@@ -336,18 +304,33 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                 )}
                 {!["LOBBY", "FINISHED", "LEADERBOARD"].includes(snapshot.phase) &&
                   snapshot.prompt && <QuestionCard>{snapshot.prompt}</QuestionCard>}
-                {snapshot.questionImageAssetId &&
-                  image(snapshot.questionImageAssetId, playerText.anhTinhHuong)}
-                {snapshot.phase === "QUESTION" && (
-                  <GlassCard className="mt-4 p-6">
-                    <h1 className="text-xl font-black">{playerText.docTinhHuongNao}</h1>
-                    <p className="mt-3">{playerText.thuVienMemeSeMoNgaySauPhanCau}</p>
-                  </GlassCard>
+                {seconds !== null && (
+                  <div className="my-3 flex justify-end">
+                    <CountdownTimer
+                      seconds={seconds}
+                      total={Math.max(
+                        1,
+                        ((snapshot.phaseEndsAt ?? 0) - (snapshot.phaseStartedAt ?? 0)) / 1000,
+                      )}
+                    />
+                  </div>
                 )}
+                {snapshot.paused && (
+                  <p role="status" className="mb-3 rounded-2xl bg-amber-50 p-3 font-bold">
+                    {playerText.troChoiDangTamDung}
+                  </p>
+                )}
+                {expired && (
+                  <p role="status" className="mb-3 rounded-2xl bg-amber-50 p-3 font-bold">
+                    {playerText.daHetThoiGianDangChoMayChuChuyen}
+                  </p>
+                )}
+                {!["LOBBY", "FINISHED", "LEADERBOARD"].includes(snapshot.phase) &&
+                  snapshot.questionImageAssetId &&
+                  image(snapshot.questionImageAssetId, playerText.anhTinhHuong)}
                 {snapshot.phase === "SUBMITTING" && (
                   <section className="mt-4">
-                    <h1 className="text-2xl font-black">{playerText.chonCuChotCuaBan}</h1>
-                    <p className="my-3 text-sm">{playerText.chooseHint}</p>
+                    <h1 className="sr-only">{playerText.chonCuChotCuaBan}</h1>
                     {snapshot.hasSubmitted && (
                       <p className="mt-2 font-bold text-emerald-700" role="status">
                         {playerText.daGuiMemeBanCoTheThayDoiTruoc}
@@ -448,23 +431,15 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                   </section>
                 )}
                 {snapshot.phase === "REVEAL" && (
-                  <GlassCard className="mt-4 p-6">
-                    <h1 className="text-2xl font-black">{playerText.denGioTietLo}</h1>
-                    <p className="reveal-progress" role="status">
-                      {snapshot.submissions.length
-                        ? playerText.revealProgress(
-                            revealPosition(snapshot, clock + game.offset) + 1,
-                            snapshot.submissions.length,
-                          )
-                        : playerText.revealEmpty}
-                    </p>
-                    <p className="mt-3">
-                      {playerText.cungXemCacMemeTrenManHinhLon}{" "}
-                      {snapshot.mode === "TALENT_MODE"
-                        ? playerText.dangChoTalentChonWinner
-                        : playerText.binhChonSeMoSauPhanTietLo}
-                    </p>
-                  </GlassCard>
+                  <p className="mt-4 text-center font-bold" role="status">
+                    <span className="sr-only">{playerText.denGioTietLo}. </span>
+                    {snapshot.submissions.length
+                      ? playerText.revealProgress(
+                          revealPosition(snapshot, clock + game.offset) + 1,
+                          snapshot.submissions.length,
+                        )
+                      : playerText.revealEmpty}
+                  </p>
                 )}
                 {snapshot.phase === "VOTING" && snapshot.mode === "COMMUNITY_MODE" && (
                   <section className="mt-4">
@@ -535,7 +510,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                     <p className="mt-4 font-bold">
                       {playerText.diemCuaBan} {own?.score ?? 0}
                     </p>
-                    {leaderboard()}
                   </GlassCard>
                 )}
                 {snapshot.phase === "LEADERBOARD" && (

@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Expand, Minimize } from "lucide-react";
 import QRCode from "qrcode";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Brand } from "../components/brand";
 import { CelestialBackground } from "../components/celestial-background";
 import { CountdownTimer } from "../components/countdown-timer";
@@ -11,6 +11,33 @@ import { RoundFlow } from "../components/round-flow";
 import { revealPosition } from "../lib/reveal-position";
 
 const copy = getMessages().display;
+
+function StarConfetti() {
+  return (
+    <div className="presentation-confetti" aria-hidden="true">
+      {Array.from({ length: 28 }, (_, index) => {
+        const angle = (index / 28) * Math.PI * 2;
+        const distance = 28 + (index % 5) * 7;
+        return (
+          <i
+            key={index}
+            style={
+              {
+                "--star-x": `${Math.cos(angle) * distance}vw`,
+                "--star-y": `${Math.sin(angle) * distance}vh`,
+                "--star-delay": `${(index % 7) * 0.035}s`,
+                "--star-rotate": `${180 + (index % 4) * 90}deg`,
+              } as CSSProperties
+            }
+          >
+            ★
+          </i>
+        );
+      })}
+    </div>
+  );
+}
+
 function StageImage({
   url,
   label,
@@ -326,17 +353,15 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
               {(phase === "REVEAL" || phase === "VOTING") && (
                 <div className="presentation-reveal">
                   <div className="presentation-reveal-heading">
-                    <span className="presentation-eyebrow">
-                      {phase === "REVEAL" ? copy.anonymous : copy.votingHint}
-                    </span>
-                    <h1>{phase === "REVEAL" ? copy.reveal : copy.voting}</h1>
-                    <blockquote className="presentation-prompt">{snapshot.prompt}</blockquote>
-                    {snapshot.mode === "TALENT_MODE" ? (
-                      <p>{copy.talent}</p>
+                    {phase === "REVEAL" ? (
+                      <h1 className="presentation-prompt">“{snapshot.prompt}”</h1>
                     ) : (
-                      phase === "VOTING" && (
+                      <>
+                        <span className="presentation-eyebrow">{copy.votingHint}</span>
+                        <h1>{copy.voting}</h1>
+                        <blockquote className="presentation-prompt">{snapshot.prompt}</blockquote>
                         <p>{copy.voted(snapshot.votesCast, snapshot.eligibleVoterCount)}</p>
-                      )
+                      </>
                     )}
                   </div>
                   {active ? (
@@ -390,15 +415,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                     </p>
                   </div>
                   {winner && image(winner.memeAssetId, copy.result)}
-                  {winner && (
-                    <div className="presentation-confetti" aria-hidden="true">
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <i key={i} style={{ left: `${i * 8}%`, animationDelay: `${i * 0.12}s` }}>
-                          ✦
-                        </i>
-                      ))}
-                    </div>
-                  )}
+                  {winner && <StarConfetti />}
                 </div>
               )}
               {(phase === "LEADERBOARD" || phase === "FINISHED") && (
@@ -416,15 +433,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                   )}
                   {ranked.length ? leaderboard : <p>{copy.noPlayers}</p>}
                   <p>{phase === "FINISHED" ? copy.footer : copy.next}</p>
-                  {phase === "FINISHED" && (
-                    <div className="presentation-confetti" aria-hidden="true">
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <i key={i} style={{ left: `${i * 8}%`, animationDelay: `${i * 0.12}s` }}>
-                          ✦
-                        </i>
-                      ))}
-                    </div>
-                  )}
+                  {phase === "FINISHED" && <StarConfetti />}
                 </div>
               )}
             </>

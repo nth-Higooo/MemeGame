@@ -42,7 +42,7 @@ Sau reveal, Admin hoặc Judge đề cử một submission thuộc vòng hiện 
 
 Mọi command sai role, phase hoặc deadline đều bị từ chối mà không tăng version.
 
-Phiên mới mặc định `manualControl: true`: question/reveal/result/leaderboard không tự advance; submission timeout khóa nhận bài nhưng chờ Admin reveal. Voting timeout tính kết quả tạm. Mode có thể đổi trước vòng tại lobby/question/leaderboard. Xem [admin-control.md](admin-control.md) để vận hành và dùng Dry Run.
+Phiên mới mặc định `manualControl: true`: question/reveal/leaderboard do Admin điều khiển; sau khi công bố, `RESULT` có deadline 30 giây và tự chuyển sang `LEADERBOARD`. Submission timeout khóa nhận bài nhưng chờ Admin reveal. Voting timeout tính kết quả tạm. Mode có thể đổi trước vòng tại lobby/question/leaderboard. Xem [admin-control.md](admin-control.md) để vận hành và dùng Dry Run.
 
 ## Kết nối và lỗi
 

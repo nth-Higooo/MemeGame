@@ -41,7 +41,7 @@ export class EngineError extends Error {
 const PHASE_DURATION_MS: Partial<Record<GamePhase, number>> = {
   QUESTION: 5_000,
   REVEAL: 5_000,
-  RESULT: 8_000,
+  RESULT: 30_000,
   LEADERBOARD: 8_000,
 };
 
@@ -192,7 +192,7 @@ function finalizeRound(
     { ...withWinner, players: scoreFinalizedRound(withWinner, winnerSubmissionId) },
     "RESULT",
     now,
-    state.manualControl ? null : PHASE_DURATION_MS.RESULT!,
+    PHASE_DURATION_MS.RESULT!,
   );
 }
 

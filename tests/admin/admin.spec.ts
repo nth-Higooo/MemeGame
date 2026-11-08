@@ -157,15 +157,11 @@ for (const mode of ["TALENT_MODE", "COMMUNITY_MODE"]) {
       const judgePage = await judgeContext.newPage();
       if (mode === "TALENT_MODE") {
         await page.getByLabel("Tên Talent", { exact: true }).fill("Talent");
-        await page.getByLabel("Mật khẩu Talent", { exact: true }).fill("talent-e2e-password-123");
         await page.getByRole("button", { name: "Cấu hình game", exact: true }).click();
         await expect(page.getByText(/Đã cấp quyền Talent/)).toBeVisible();
         await judgePage.goto(`/judge/${code}`);
-        await judgePage.getByLabel("Mật khẩu Talent").fill("talent-e2e-password-123");
-        await judgePage.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-        await expect(
-          judgePage.getByRole("button", { name: "Đăng xuất", exact: true }),
-        ).toBeVisible();
+        await expect(judgePage.getByText("Đã kết nối", { exact: true })).toBeVisible();
+        await expect(judgePage.getByLabel("Mật khẩu Talent")).toHaveCount(0);
         expect((await judgePage.request.get("/api/admin/sessions")).status()).toBe(401);
         const jt = (await (
           await judgePage.request.post(`/api/judge/${code}/ticket`, {
@@ -249,6 +245,8 @@ for (const mode of ["TALENT_MODE", "COMMUNITY_MODE"]) {
             })
           ).status(),
         ).toBe(401);
+        await judgePage.reload();
+        await expect(judgePage.getByText("Đã kết nối", { exact: true })).toBeVisible();
       }
       await page.getByRole("button", { name: "Điều chỉnh điểm", exact: true }).first().click();
       await page.getByLabel("Số điểm cộng / trừ").fill("5");
@@ -258,7 +256,7 @@ for (const mode of ["TALENT_MODE", "COMMUNITY_MODE"]) {
         .poll(() => admin.state?.players[0]?.score)
         .toBe(mode === "TALENT_MODE" ? 105 : 5);
       if (mode === "TALENT_MODE")
-        await expect(judgePage.getByLabel("Mật khẩu Talent")).toBeVisible();
+        await expect(judgePage.getByLabel("Mật khẩu Talent")).toHaveCount(0);
       await page.getByRole("button", { name: "Hiện bảng điểm", exact: true }).click();
       await page.getByRole("button", { name: "Vòng tiếp / kết thúc", exact: true }).click();
       await expect(page.getByText("Sự kiện đã kết thúc")).toBeVisible();

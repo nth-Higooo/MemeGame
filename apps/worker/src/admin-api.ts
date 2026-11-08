@@ -33,6 +33,7 @@ import {
 import { ALLOWED_IMAGE_TYPES, inspectImageSignature, uploadLimit } from "./media";
 import { createGameSession, issueRoleTicket } from "./session-service";
 import { logEvent } from "./observability";
+import { createReconnectToken } from "./realtime-auth";
 
 type Variables = { admin: AdminSession };
 const adminApi = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -834,7 +835,8 @@ adminApi.post("/sessions/:sessionCode/judge", async (c) => {
   if (!persistedGameStateSchema.parse(JSON.parse(session.state_json)).manualControl)
     return c.json({ message: "Tạo phiên thủ công để cấp quyền Talent." }, 400);
   const id = crypto.randomUUID();
-  const password = await hashPassword(parsed.data.password);
+  // Keep legacy non-null password columns populated without exposing a Talent password.
+  const password = await hashPassword(createReconnectToken());
   await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM judge_grants WHERE session_id=?").bind(session.id),
     c.env.DB.prepare(
