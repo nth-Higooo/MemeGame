@@ -235,7 +235,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
       });
   };
   const archiveCompletedSession = () => {
-    if (!confirm(c.archiveSessionConfirm)) return;
+    if (!window.confirm(c.archiveSessionConfirm)) return;
     void run(
       () => adminRequest(`/api/admin/sessions/${sessionCode}`, undefined, "DELETE"),
       c.archivedSession,
