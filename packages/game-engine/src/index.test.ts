@@ -138,25 +138,22 @@ describe("realtime game engine", () => {
     expect(nominated.round?.finalizedAt).toBeNull();
     expect(nominated.players.every((player) => player.score === 0)).toBe(true);
   });
-  it("closes the manual submission deadline without revealing until Admin requests it", () => {
+  it("automatically begins the timed Community reveal when the submission deadline expires", () => {
     let current = adminCommand({ ...state(), manualControl: true }, "START", 1000);
     current = adminCommand(current, "ADVANCE", 2000);
     current = applyDeadline(current, current.phaseEndsAt!).state;
-    expect(current.phase).toBe("SUBMITTING");
-    expect(current.deadlineExpired).toBe(true);
-    expect(applyDeadline(current, 999999).duplicate).toBe(true);
-    current = adminCommand(current, "PAUSE", 999999);
-    current = adminCommand(current, "RESUME", 1000000);
+    expect(current.phase).toBe("REVEAL");
+    expect(current.phaseEndsAt).toBe(37_000);
     expect(() =>
       applyGameCommand(
         current,
         { type: "SUBMIT_MEME", commandId: commandId(), memeAssetId: ids.memeA },
         playerA,
-        1000001,
+        3001,
       ),
-    ).toThrow(/sau hạn chót/);
-    current = adminCommand(current, "ADVANCE", 1000002);
-    expect(current.phase).toBe("REVEAL");
+    ).toThrow();
+    current = applyDeadline(current, current.phaseEndsAt!).state;
+    expect(current.phase).toBe("VOTING");
   });
   it("runs manual Talent nomination, confirmed publication, and audited correction", () => {
     let current = adminCommand({ ...state("TALENT_MODE"), manualControl: true }, "START", 1000);
@@ -247,9 +244,9 @@ describe("realtime game engine", () => {
       playerB,
       3100,
     ).state;
-    current = adminCommand(current, "ADVANCE", 4000);
-    expect(current.phaseEndsAt).toBeNull();
+    expect(current.phaseEndsAt).toBe(13_100);
     current = adminCommand(current, "ADVANCE", 5000);
+    expect(current.phase).toBe("VOTING");
     current = applyGameCommand(
       current,
       { type: "CAST_VOTE", commandId: commandId(), submissionId: second },
@@ -407,7 +404,6 @@ describe("realtime game engine", () => {
       playerB,
       8_000,
     ).state;
-    current = applyDeadline(current, current.phaseEndsAt!).state;
     current = applyDeadline(current, current.phaseEndsAt!).state;
     expect(current.phase).toBe("VOTING");
     expect(() =>

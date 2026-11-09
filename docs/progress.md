@@ -1,5 +1,12 @@
 # Tiến độ
 
+## 2026-11-10 — Player media-first flow and automatic Community reveal
+
+- Player submitting view now hides the top navigation, search/tag controls, filenames and preview controls. It renders authorized memes in a one-column, image-first list; tapping a card selects it and one direct send action submits or replaces it before the server deadline. Authorized player images begin loading together instead of being discarded outside the viewport.
+- The server now begins Community reveal when the final room player submits or the submission deadline expires. Reveal has an authoritative five-second slot per submitted meme, then automatically enters voting. Talent reveal remains decision-led. Updated engine and Worker deadline regression coverage.
+- Display removes header chrome, reveal captions and voting thumbnails while memes are featured. Leaderboard/finished view has a top-three podium with named gold, silver and bronze trophy positions, followed by paginated remaining rankings.
+- Verification: `pnpm typecheck`, `pnpm test`, `pnpm format:check` and `pnpm build` pass. The Worker dry-run retains its nonfatal local Wrangler log-file `EPERM` warning, and Vite retains the existing main-chunk advisory. Player Chrome Playwright (4/4) and Display Chrome at 720p/1080p (4/4) pass using the installed system Chrome. WebKit Playwright was not run because its browser executable is not installed. `pnpm lint` remains blocked by the pre-existing `admin-page.tsx:272` React Hook dependency warning; this change adds no lint warning.
+
 ## 2026-11-08 — Chọn toàn bộ meme cho câu hỏi
 
 - Added a “Chọn tất cả meme” action to the Content Studio question form. It checks every non-archived meme currently available to the question; individual selections can still be cleared before saving.

@@ -1,6 +1,6 @@
 import { getMessages } from "../i18n";
 import { playerContentSchema, playerRoomSchema } from "@misthy/shared";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { AppShell } from "../components/app-shell";
 import { GlassBadge } from "../components/glass-badge";
@@ -32,24 +32,9 @@ function PlayerImage({
   const [url, setUrl] = useState("");
   const [failed, setFailed] = useState(false);
   const [retryImage, setRetryImage] = useState(0);
-  const placeholder = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const nearViewport = entries.some((entry) => entry.isIntersecting);
-        setVisible(nearViewport);
-        if (!nearViewport) setUrl("");
-      },
-      { rootMargin: "200px" },
-    );
-    if (placeholder.current) observer.observe(placeholder.current);
-    return () => observer.disconnect();
-  }, []);
   const reduced = useReducedMotion();
   const [animate, setAnimate] = useState(false);
   useEffect(() => {
-    if (!visible) return;
     let active = true;
     const controller = new AbortController();
     let objectUrl = "";
@@ -73,9 +58,9 @@ function PlayerImage({
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [id, code, token, visible, retryImage]);
+  }, [id, code, token, retryImage]);
   return (
-    <div ref={placeholder} className="aspect-video w-full">
+    <div className="aspect-video w-full">
       {failed ? (
         <div className="grid h-full place-items-center bg-[var(--surface-soft)] p-3 text-xs">
           <span role="status">{playerText.anhChuaSanSang}</span>
@@ -89,7 +74,7 @@ function PlayerImage({
             {playerText.taiLaiAnh}
           </GlassButton>
         </div>
-      ) : !visible || !url ? (
+      ) : !url ? (
         <div className="h-full bg-[var(--surface-soft)]" aria-label={playerText.dangTaiAnh} />
       ) : reduced && !animate ? (
         <GlassButton variant="soft" onClick={() => setAnimate(true)}>
@@ -100,7 +85,7 @@ function PlayerImage({
           src={url}
           alt={alt}
           className="aspect-video w-full rounded-2xl bg-[var(--surface-soft)] object-contain"
-          loading="lazy"
+          loading="eager"
           onError={() => setFailed(true)}
         />
       )}
@@ -114,10 +99,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
   const [roomError, setRoomError] = useState("");
   const [content, setContent] = useState<Content>(emptyContent);
   const [contentError, setContentError] = useState("");
-  const [query, setQuery] = useState("");
-  const [tag, setTag] = useState("");
   const [selection, setSelection] = useState<{ round: number; id: string } | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
     kind: "meme" | "vote";
     id: string;
@@ -174,14 +156,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
   const selected =
     selection?.round === snapshot?.roundNumber ? selection?.id : snapshot?.ownMemeAssetId;
   const assets = content.assets.filter((asset) => snapshot?.allowedMemeAssetIds.includes(asset.id));
-  const visible = assets.filter(
-    (asset) =>
-      (!tag || asset.tags.includes(tag)) &&
-      `${asset.title} ${asset.tags.join(" ")}`
-        .toLocaleLowerCase("vi")
-        .includes(query.toLocaleLowerCase("vi")),
-  );
-  const tags = [...new Set(assets.flatMap((asset) => asset.tags))];
   const image = (id: string, alt: string) =>
     game.identity ? (
       <PlayerImage key={id} id={id} code={sessionCode} token={game.identity} alt={alt} />
@@ -229,6 +203,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
     <AppShell
       compactNav
       brandLinked={false}
+      showNav={false}
       action={
         game.identity && snapshot ? (
           <strong className="max-w-[70vw] truncate text-right text-sm text-[var(--midnight)]">
@@ -240,7 +215,7 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
         )
       }
     >
-      <div className="player-live mx-auto max-w-xl py-5 pb-12 [overflow-wrap:anywhere]">
+      <div className="player-live mx-auto max-w-xl py-2 pb-12 [overflow-wrap:anywhere]">
         {!game.identity ? (
           <GlassCard className="p-6">
             <GlassBadge tone="violet">{getMessages().brand.title}</GlassBadge>
@@ -336,67 +311,24 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                         {playerText.daGuiMemeBanCoTheThayDoiTruoc}
                       </p>
                     )}
-                    <GlassInput
-                      className="mt-2"
-                      label={playerText.timMeme}
-                      placeholder={playerText.tenHoacTag}
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                    />
-                    <div className="tag-filters my-3 flex gap-2 overflow-x-auto">
-                      <GlassButton
-                        size="small"
-                        aria-pressed={!tag}
-                        variant={!tag ? "soft" : "ghost"}
-                        onClick={() => setTag("")}
-                      >
-                        {playerText.tatCa}
-                      </GlassButton>
-                      {tags.map((value) => (
-                        <GlassButton
-                          size="small"
-                          key={value}
-                          aria-pressed={value === tag}
-                          variant={value === tag ? "soft" : "ghost"}
-                          onClick={() => setTag(value)}
-                        >
-                          {value}
-                        </GlassButton>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {visible.map((asset) => (
-                        <GlassCard
+                    <div className="grid grid-cols-1 gap-3">
+                      {assets.map((asset) => (
+                        <button
+                          type="button"
                           key={asset.id}
-                          className={`player-meme overflow-hidden p-2 ${selected === asset.id ? "player-meme-selected" : ""}`}
+                          className={`player-meme overflow-hidden p-2 text-left ${selected === asset.id ? "player-meme-selected" : ""}`}
+                          disabled={disabled}
+                          aria-pressed={selected === asset.id}
+                          aria-label={playerText.selectMeme(asset.title)}
+                          onClick={() =>
+                            setSelection({ round: snapshot.roundNumber, id: asset.id })
+                          }
                         >
                           {image(asset.id, asset.altText || asset.title)}
-                          <strong className="my-2 block text-sm">{asset.title}</strong>
-                          <div className="flex flex-wrap gap-1">
-                            <GlassButton
-                              variant="ghost"
-                              size="small"
-                              onClick={() => setPreview(asset.id)}
-                            >
-                              {playerText.xem}
-                            </GlassButton>
-                            <GlassButton
-                              size="small"
-                              variant={selected === asset.id ? "primary" : "glass"}
-                              disabled={disabled}
-                              aria-pressed={selected === asset.id}
-                              aria-label={playerText.selectMeme(asset.title)}
-                              onClick={() =>
-                                setSelection({ round: snapshot.roundNumber, id: asset.id })
-                              }
-                            >
-                              {playerText.chon}
-                            </GlassButton>
-                          </div>
-                        </GlassCard>
+                        </button>
                       ))}
                     </div>
-                    {!visible.length && (
+                    {!assets.length && (
                       <p className="my-5">
                         {contentError || playerText.chuaCoMemePhuHopHayDoiTuKhoa}
                       </p>
@@ -414,10 +346,10 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                         disabled={disabled || !selected || selected === snapshot.ownMemeAssetId}
                         onClick={() =>
                           selected &&
-                          setConfirmation({
-                            kind: "meme",
-                            id: selected,
-                            phaseStartedAt: snapshot.phaseStartedAt,
+                          game.send({
+                            type: snapshot.hasSubmitted ? "REPLACE_MEME" : "SUBMIT_MEME",
+                            commandId: crypto.randomUUID(),
+                            memeAssetId: selected,
                           })
                         }
                       >
@@ -543,14 +475,6 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
             {game.error || contentError}
           </p>
         )}
-        <GlassModal
-          open={Boolean(preview)}
-          title={playerText.xemTruocMeme}
-          onClose={() => setPreview(null)}
-        >
-          {preview &&
-            image(preview, content.assets.find((asset) => asset.id === preview)?.title ?? "Meme")}
-        </GlassModal>
         <GlassModal
           open={Boolean(activeConfirmation)}
           title={confirmation?.kind === "vote" ? playerText.xacNhanBinhChon : playerText.guiMemeNay}

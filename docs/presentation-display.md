@@ -17,10 +17,10 @@ Use the application's public HTTPS origin when presenting to participants. The Q
 - Lobby: large session code, QR join link, current connected count, and recent nicknames.
 - Question: introduction on the first round, large prompt, optional attachment, and server deadline.
 - Submitting: prompt, submission count, and progress bar. No submitted meme is exposed.
-- Reveal: the situation appears by itself in quotation marks beside the anonymous, stable-size GIF stage. The stage cycles every five seconds without changing the server phase.
-- Voting: anonymous memes, voting deadline, and aggregate participation count. Individual vote totals and submission authors remain hidden until results.
+- Reveal: the situation appears by itself in quotation marks beside the anonymous, stable-size GIF stage. The stage cycles every five seconds; the server reserves five seconds per submitted meme before automatically opening Community voting.
+- Voting: anonymous memes, voting deadline, and aggregate participation count. Individual vote totals and submission authors remain hidden until results. Presentation header chrome, meme labels and thumbnail/page strips are omitted while media is on screen.
 - Result: winner identity, winning meme, cumulative score, and a radial star-confetti burst. The server keeps this screen for 30 seconds before automatically opening the leaderboard.
-- Leaderboard: score order with spring transitions; eight players per page, advancing every ten seconds for larger rooms.
+- Leaderboard: the first three places are shown as a podium with names above gold, silver and bronze trophy icons. Remaining places use score order and advance every ten seconds in groups of eight.
 - Finished: final ranking, leading player, and a brief celebration.
 
 Only the server/admin drives game phases. The carousel and leaderboard pagination are presentation-only changes. Pause stops the displayed deadline and shows a pause notice. At zero the display waits for the next authoritative snapshot; it does not advance itself.

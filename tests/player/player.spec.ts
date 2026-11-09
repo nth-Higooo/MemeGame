@@ -134,19 +134,15 @@ test("Community player joins, restores, replaces, votes once, and sees final sum
     other = new RealtimePeer(joined.connection);
     await admin.action("START");
     await expect(page.getByText("Khi bạn hứa chỉ chơi một ván…")).toBeVisible();
-    await expect(page.getByText(/Người chơi mobile · Vòng 1 \/ 1/)).toBeVisible();
     await admin.action("ADVANCE");
-    await expect(page.getByLabel("Tìm meme")).toBeVisible();
     await page.setViewportSize({ width: 320, height: 700 });
     await expect(page.getByAltText("Original mint")).toBeVisible();
     await page.screenshot({ path: "artifacts/phase05/player-selection.png", fullPage: true });
     await page.getByRole("button", { name: "Chọn meme Original mint", exact: true }).click();
     await page.getByRole("button", { name: "Gửi meme này", exact: true }).click();
-    await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
     await expect(page.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "Chọn meme Original peach", exact: true }).click();
     await page.getByRole("button", { name: "Thay meme đã gửi", exact: true }).click();
-    await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Thay meme đã gửi", exact: true }),
     ).toBeDisabled();
@@ -154,10 +150,8 @@ test("Community player joins, restores, replaces, votes once, and sees final sum
     await context.setOffline(true);
     await context.setOffline(false);
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
-    await expect(page.getByText(/Người chơi mobile · Vòng 1 \/ 1/)).toBeVisible();
+    await expect(page.getByText(/Đang trình chiếu meme/)).toBeVisible();
     await page.reload();
-    await expect(page.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
-    await admin.action("ADVANCE");
     await expect(page.getByText(/Đang trình chiếu meme/)).toBeVisible();
     await admin.action("ADVANCE");
     await expect(page.getByRole("button", { name: "Meme của bạn", exact: true })).toBeDisabled();
@@ -213,9 +207,6 @@ test("Talent player waits for decision and sees winning score", async ({ page, r
     await admin.action("ADVANCE");
     await page.getByRole("button", { name: "Chọn meme Original mint", exact: true }).click();
     await page.getByRole("button", { name: "Gửi meme này" }).click();
-    await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
-    await expect(page.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
-    await admin.action("ADVANCE");
     await expect(page.getByText(/Đang trình chiếu meme/)).toBeVisible();
     const state = admin.messages.filter((item) => item.type === "STATE_SYNC").at(-1) as {
       state: { submissions: { id: string }[] };

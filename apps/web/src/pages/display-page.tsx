@@ -1,8 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Expand, Minimize } from "lucide-react";
+import { Expand, Minimize, Trophy } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Brand } from "../components/brand";
 import { CelestialBackground } from "../components/celestial-background";
 import { CountdownTimer } from "../components/countdown-timer";
 import { getMessages } from "../i18n";
@@ -181,19 +180,20 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
   const ranked = [...(snapshot?.players ?? [])].sort(
     (a, b) => b.score - a.score || a.id.localeCompare(b.id),
   );
-  const rankPage = Math.floor(elapsed / 10000) % Math.max(1, Math.ceil(ranked.length / 8));
+  const rankPage =
+    Math.floor(elapsed / 10000) % Math.max(1, Math.ceil(Math.max(0, ranked.length - 3) / 8));
   const progress = snapshot?.players.length
     ? Math.min(100, (100 * snapshot.submissionCount) / snapshot.players.length)
     : 0;
   const leaderboard = (
     <ol className="presentation-ranking" aria-label={copy.leaderboard}>
-      {ranked.slice(rankPage * 8, rankPage * 8 + 8).map((player, position) => (
+      {ranked.slice(3 + rankPage * 8, 3 + rankPage * 8 + 8).map((player, position) => (
         <motion.li
           layout={!reduced}
           transition={{ type: "spring", stiffness: 120, damping: 22 }}
           key={player.id}
         >
-          <span className="presentation-rank">{rankPage * 8 + position + 1}</span>
+          <span className="presentation-rank">{rankPage * 8 + position + 4}</span>
           <strong>{player.displayName}</strong>
           <span>
             {player.score} <small>{copy.points}</small>
@@ -202,6 +202,7 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
       ))}
     </ol>
   );
+  const podium = ranked.slice(0, 3);
   const image = (id: string, label: string) => (
     <StageImage
       key={`${id}:${reduced}`}
@@ -219,20 +220,6 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
       data-phase={phase ?? "CONNECTING"}
     >
       <CelestialBackground tone="stage" />
-      <header className="presentation-header">
-        <Brand />
-        <div className="presentation-header-meta">
-          <span>
-            {snapshot
-              ? copy.players(snapshot.players.filter((item) => item.connected).length)
-              : sessionCode}
-          </span>
-          {phase && phase !== "LOBBY" && (
-            <strong>{copy.round(ownRound, snapshot?.totalRounds ?? 0)}</strong>
-          )}
-          <span className="presentation-room">{sessionCode}</span>
-        </div>
-      </header>
       <div className="presentation-controls">
         <button
           aria-label={fullscreen ? copy.exitFullscreen : copy.fullscreen}
@@ -376,9 +363,6 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                             transition={{ duration: reduced ? 0 : 0.4 }}
                           >
                             {image(active.memeAssetId, copy.entry(index + 1, submissions.length))}
-                            <figcaption>
-                              {copy.anonymous} · {copy.entry(index + 1, submissions.length)}
-                            </figcaption>
                           </motion.figure>
                         </AnimatePresence>
                       </div>
@@ -431,7 +415,29 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                       ✦ {copy.champion}: <strong>{ranked[0].displayName}</strong> ✦
                     </p>
                   )}
-                  {ranked.length ? leaderboard : <p>{copy.noPlayers}</p>}
+                  {ranked.length ? (
+                    <>
+                      <ol className="presentation-podium" aria-label={copy.leaderboard}>
+                        {[podium[1], podium[0], podium[2]].map((player, index) => {
+                          if (!player) return null;
+                          const place = [2, 1, 3][index]!;
+                          return (
+                            <li className={`podium-place podium-${place}`} key={player.id}>
+                              <strong>{player.displayName}</strong>
+                              <Trophy aria-hidden="true" />
+                              <span>Top {place}</span>
+                              <small>
+                                {player.score} {copy.points}
+                              </small>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      {ranked.length > 3 && leaderboard}
+                    </>
+                  ) : (
+                    <p>{copy.noPlayers}</p>
+                  )}
                   <p>{phase === "FINISHED" ? copy.footer : copy.next}</p>
                   {phase === "FINISHED" && <StarConfetti />}
                 </div>
@@ -458,9 +464,6 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
           {copy.mediaRetry}
         </button>
       )}
-      <footer className="presentation-footer">
-        <span>{getMessages().brand.title}</span>
-      </footer>
     </main>
   );
 }

@@ -268,7 +268,7 @@ describe("Phase 08 storage, security and recovery integration", () => {
     }
   });
 
-  it("rejects an exact-deadline submission before the alarm runs", async () => {
+  it("rejects an exact-deadline submission before the alarm starts reveal", async () => {
     const f = await harness();
     try {
       const p = await join(f, "Deadline");
@@ -281,10 +281,10 @@ describe("Phase 08 storage, security and recovery integration", () => {
       expect(socket.frames.at(-1)).toMatchObject({ type: "ERROR", code: "SUBMISSION_LATE" });
       f.db.failBatch = true;
       await expect(f.room.alarm()).rejects.toThrow("Game alarm persistence unavailable");
-      expect(f.snapshot().deadlineExpired).not.toBe(true);
+      expect(f.snapshot().phase).toBe("SUBMITTING");
       f.db.failBatch = false;
       await f.room.alarm();
-      expect(f.snapshot().deadlineExpired).toBe(true);
+      expect(f.snapshot().phase).toBe("REVEAL");
       expect(f.snapshot().round?.submissions).toHaveLength(0);
       const version = f.snapshot().version;
       await f.room.alarm();

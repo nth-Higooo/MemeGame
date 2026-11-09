@@ -45,6 +45,12 @@ const PHASE_DURATION_MS: Partial<Record<GamePhase, number>> = {
   LEADERBOARD: 8_000,
 };
 
+const REVEAL_PER_MEME_MS = 5_000;
+
+function revealDurationMs(state: PersistedGameState) {
+  return Math.max(1, state.round?.submissions.length ?? 0) * REVEAL_PER_MEME_MS;
+}
+
 function requireRole(actor: EngineActor, roles: SessionRole[]) {
   if (!roles.includes(actor.role)) {
     throw new EngineError("UNAUTHORIZED_COMMAND", "Vai trò này không được phép thực hiện lệnh.");
@@ -216,7 +222,7 @@ function advance(state: PersistedGameState, now: number, idFactory: () => string
         },
         "REVEAL",
         now,
-        !state.manualControl && state.mode === "COMMUNITY_MODE" ? PHASE_DURATION_MS.REVEAL! : null,
+        state.mode === "COMMUNITY_MODE" ? revealDurationMs(state) : null,
       );
     case "REVEAL":
       if (state.manualControl && state.round?.resultPending)
@@ -301,6 +307,13 @@ export function applyGameCommand(
       },
     };
     effects.push({ type: "SUBMISSION_ACCEPTED", submissionId: existing?.id ?? command.commandId });
+    if (
+      command.type === "SUBMIT_MEME" &&
+      next.players.length > 0 &&
+      next.round!.submissions.length === next.players.length
+    ) {
+      next = advance(next, now, idFactory);
+    }
   } else if (command.type === "CAST_VOTE") {
     requireRole(actor, ["PLAYER"]);
     if (!actor.subjectId) throw new EngineError("PLAYER_REQUIRED", "Thiếu danh tính người chơi.");
@@ -545,12 +558,6 @@ export function applyDeadline(
   ) {
     return { state, effects: [], duplicate: true };
   }
-  if (state.manualControl && state.phase === "SUBMITTING")
-    return {
-      state: { ...state, deadlineExpired: true, version: state.version + 1 },
-      effects: [{ type: "STATE_CHANGED" }],
-      duplicate: false,
-    };
   const next = advance(state, now, idFactory);
   return {
     state: next,

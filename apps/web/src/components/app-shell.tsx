@@ -8,12 +8,14 @@ export function AppShell({
   children,
   action,
   compactNav = false,
+  showNav = true,
   brandLinked = true,
   className,
   bottomBar,
 }: PropsWithChildren<{
   action?: ReactNode;
   compactNav?: boolean;
+  showNav?: boolean;
   brandLinked?: boolean;
   className?: string;
   bottomBar?: ReactNode;
@@ -27,7 +29,7 @@ export function AppShell({
       )}
     >
       <AmbientBackground />
-      <GlassNavbar action={action} compact={compactNav} brandLinked={brandLinked} />
+      {showNav && <GlassNavbar action={action} compact={compactNav} brandLinked={brandLinked} />}
       <motion.div
         className="relative z-10 mx-auto max-w-7xl"
         initial={reduceMotion ? false : { opacity: 0, y: 12 }}

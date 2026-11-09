@@ -20,8 +20,9 @@ An in-flight command blocks repeat taps. On reconnect it is retried with the sam
 
 - Lobby confirms nickname, connected count, and instructions.
 - Question presents the real prompt, optional attachment, and deadline countdown beneath a compact nickname/round header.
-- Submitting keeps the same prompt directly above the allowed meme grid, title/tag search, preview, selection, confirmation, and replacement before deadline; mode, score, and round-roadmap chrome are omitted from the active play view.
-- Reveal asks players to follow the shared display and wait for voting or Talent decision.
+- Submitting shows the complete allowed set as a one-column, image-only list (the event set is limited to ten). Tapping an image selects it; one direct **Gửi meme** action submits it. A player may tap a different image and send again to replace their submission before the authoritative deadline. Search, tags, filenames, preview controls and top navigation are omitted so the media has the full reading width.
+- The images begin fetching together as soon as the authorized submitting view opens; they are not unloaded merely because they leave the viewport.
+- In Community Mode, the last player submission immediately starts the timed anonymous reveal. The submission deadline does the same when not everyone submitted. Reveal stays up for five seconds per submitted meme, then the server automatically opens voting. Talent Mode remains awaiting a Talent decision after reveal.
 - Community voting shows anonymous submissions, disables the player's own submission, checks voter eligibility, and locks after confirmation.
 - Result shows the winning meme, public winner identity, and updated personal score for 30 seconds; the ranking appears only after the authoritative transition to Leaderboard.
 - Leaderboard/final screen sorts scores and shows server-derived totals for submitted rounds, votes, and wins.
