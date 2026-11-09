@@ -3,6 +3,7 @@ import {
   adminLoginSchema,
   contentImportSchema,
   createSessionSchema,
+  deleteSessionSchema,
   judgeCredentialSchema,
   persistedGameStateSchema,
   gamePresetInputSchema,
@@ -13,6 +14,7 @@ import {
   questionUpdateSchema,
   reorderSchema,
   sessionCodeSchema,
+  sessionReviewSchema,
   ticketRequestSchema,
   type ZodType,
 } from "@misthy/shared";
@@ -815,13 +817,14 @@ adminApi.get("/sessions", async (c) =>
   }),
 );
 adminApi.delete("/sessions/:sessionCode", async (c) => {
-  const session = await c.env.DB.prepare("SELECT id,state_json FROM sessions WHERE code=?")
+  const parsed = await readJson(c, deleteSessionSchema);
+  if (!parsed.success) return c.json(validationError(parsed.error.issues), 400);
+  const session = await c.env.DB.prepare(
+    "SELECT id FROM sessions WHERE code=? AND status!='ARCHIVED'",
+  )
     .bind(c.req.param("sessionCode"))
-    .first<{ id: string; state_json: string }>();
+    .first<{ id: string }>();
   if (!session) return c.json({ error: "not_found", message: "Không tìm thấy phiên." }, 404);
-  const state = persistedGameStateSchema.parse(JSON.parse(session.state_json));
-  if (state.phase !== "FINISHED")
-    return c.json({ error: "session_active", message: "Chỉ có thể xóa phiên đã kết thúc." }, 409);
   await c.env.DB.batch([
     c.env.DB.prepare("UPDATE sessions SET status='ARCHIVED' WHERE id=?").bind(session.id),
     c.env.DB.prepare(
@@ -829,6 +832,41 @@ adminApi.delete("/sessions/:sessionCode", async (c) => {
     ).bind(crypto.randomUUID(), session.id, c.get("admin").sub),
   ]);
   return c.json({ ok: true, archived: true });
+});
+adminApi.get("/sessions/:sessionCode/review", async (c) => {
+  const rows = await c.env.DB.prepare(
+    `SELECT s.id AS submission_id,r.round_number,r.prompt,s.meme_asset_id,p.display_name,s.submitted_at,
+      count(v.id) AS vote_count
+     FROM sessions ss JOIN rounds r ON r.session_id=ss.id
+     JOIN submissions s ON s.round_id=r.id JOIN players p ON p.id=s.player_id
+     LEFT JOIN votes v ON v.submission_id=s.id
+     WHERE ss.code=? AND ss.status!='ARCHIVED'
+     GROUP BY s.id,r.round_number,r.prompt,s.meme_asset_id,p.display_name,s.submitted_at
+     ORDER BY r.round_number,s.submitted_at`,
+  )
+    .bind(c.req.param("sessionCode"))
+    .all<{
+      submission_id: string;
+      round_number: number;
+      prompt: string;
+      meme_asset_id: string;
+      display_name: string;
+      submitted_at: string;
+      vote_count: number;
+    }>();
+  return c.json(
+    sessionReviewSchema.parse({
+      items: rows.results.map((row) => ({
+        submissionId: row.submission_id,
+        roundNumber: row.round_number,
+        prompt: row.prompt,
+        memeAssetId: row.meme_asset_id,
+        playerName: row.display_name,
+        submittedAt: row.submitted_at,
+        voteCount: row.vote_count,
+      })),
+    }),
+  );
 });
 adminApi.get("/sessions/:sessionCode/audit", async (c) =>
   c.json({

@@ -20,7 +20,7 @@ Use the application's public HTTPS origin when presenting to participants. The Q
 - Reveal: the situation appears by itself in quotation marks beside the anonymous, stable-size GIF stage. The stage cycles every five seconds; the server reserves five seconds per submitted meme before automatically opening Community voting.
 - Voting: anonymous memes, voting deadline, and aggregate participation count. Individual vote totals and submission authors remain hidden until results. Presentation header chrome, meme labels and thumbnail/page strips are omitted while media is on screen.
 - Result: winner identity, winning meme, cumulative score, and a radial star-confetti burst. The server keeps this screen for 30 seconds before automatically opening the leaderboard.
-- Leaderboard: the first three places are shown as a podium with names above gold, silver and bronze trophy icons. Remaining places use score order and advance every ten seconds in groups of eight.
+- Leaderboard: an 18-second Kahoot-style reveal announces Top 5, 4, 3, 2 and 1 at three-second intervals (or starts at the lowest available rank in smaller rooms). Top 1 receives a spotlight; confetti begins only 1.25 seconds after that final reveal. The finished screen preserves the named gold, silver and bronze podium.
 - Finished: final ranking, leading player, and a brief celebration.
 
 Only the server/admin drives game phases. The carousel and leaderboard pagination are presentation-only changes. Pause stops the displayed deadline and shows a pause notice. At zero the display waits for the next authoritative snapshot; it does not advance itself.
@@ -31,7 +31,7 @@ The browser obtains a short-lived DISPLAY ticket and receives a fresh role-proje
 
 R2 stays private. The display media endpoint verifies a signed DISPLAY ticket and checks that the requested asset is public in the current session phase. Early or unrelated assets receive 403; invalid/missing tickets receive 401. Tickets are carried in WebSocket subprotocols or the Authorization header, never image query strings.
 
-GIFs are preloaded with four concurrent requests **after reveal is authorized**, then reused across reveal/voting/results. Preloading during submission would disclose hidden content and is deliberately prohibited. Fixed media slots and `object-fit: contain` prevent layout shifts and cropping. Unused blob URLs are revoked, and failed loads show a placeholder and retry action. Reconnect retries pending media.
+GIFs are preloaded with four concurrent requests **after reveal is authorized**, then reused across reveal/voting/results. Preloading during submission would disclose hidden content and is deliberately prohibited. The meme stage has no forced 16:9 card: each image keeps its native aspect ratio, uses the largest available stage area and receives its border only around its visible pixels. Unused blob URLs are revoked, and failed loads show a placeholder and retry action. Reconnect retries pending media.
 
 Reduced-motion preference removes celebration effects and spatial transitions. GIFs are drawn once onto canvas so they remain static; the carousel still changes content without animated transitions. No audio plays automatically.
 

@@ -1,5 +1,17 @@
 # Tiến độ
 
+## 2026-11-10 — Admin session management and answer review
+
+- Added per-session question ordering to the Admin create form. Reordering affects only the new session copy; the original preset remains unchanged.
+- Added an Admin-only `/admin/:sessionCode/review` page backed by a validated Worker endpoint for reviewing durable answers, authors, prompts, timestamps and vote totals across all rounds.
+- Added early game ending via the server-authoritative `END_SESSION` action and a two-step Admin confirmation. Session deletion now archives any game—not only finished ones—after a separate two-step confirmation and an exact typed confirmation payload. Archived sessions stay out of public/session APIs and history remains auditable.
+
+## 2026-11-10 — Native media stage and Top 5 finale
+
+- Player meme cards now lift on hover and show a prominent berry checkmark immediately after selection; the existing keyboard focus and `aria-pressed` state remain intact.
+- Display no longer forces submitted meme media into a 16:9 frame. It maximizes the original portrait or landscape asset within the stage and draws the visual frame around the media itself.
+- Leaderboard now reveals ranks 5, 4, 3, 2 and 1 every three seconds. Top 1 receives a spotlight, then confetti starts after a 1.25-second pause; the normal automated leaderboard duration is 18 seconds so the complete sequence can finish. The final screen retains the three-place trophy podium.
+
 ## 2026-11-10 — Player media-first flow and automatic Community reveal
 
 - Player submitting view now hides the top navigation, search/tag controls, filenames and preview controls. It renders authorized memes in a one-column, image-first list; tapping a card selects it and one direct send action submits or replaces it before the server deadline. Authorized player images begin loading together instead of being discarded outside the viewport.

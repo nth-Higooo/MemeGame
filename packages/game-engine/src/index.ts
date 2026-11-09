@@ -42,7 +42,7 @@ const PHASE_DURATION_MS: Partial<Record<GamePhase, number>> = {
   QUESTION: 5_000,
   REVEAL: 5_000,
   RESULT: 30_000,
-  LEADERBOARD: 8_000,
+  LEADERBOARD: 18_000,
 };
 
 const REVEAL_PER_MEME_MS = 5_000;
@@ -425,6 +425,12 @@ export function applyGameCommand(
     switch (command.action) {
       case "RECOVER_SESSION":
         next = { ...state, version: state.version + 1 };
+        effects.push({ type: "STATE_CHANGED" });
+        break;
+      case "END_SESSION":
+        if (state.phase === "FINISHED")
+          throw new EngineError("SESSION_FINISHED", "Phiên chơi đã kết thúc.");
+        next = setPhase(state, "FINISHED", now, null);
         effects.push({ type: "STATE_CHANGED" });
         break;
       case "STOP_ROUND":

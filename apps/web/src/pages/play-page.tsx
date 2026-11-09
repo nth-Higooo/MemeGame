@@ -1,5 +1,6 @@
 import { getMessages } from "../i18n";
 import { playerContentSchema, playerRoomSchema } from "@misthy/shared";
+import { Check } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { AppShell } from "../components/app-shell";
@@ -325,6 +326,11 @@ export function PlayPage({ sessionCode }: { sessionCode: string }) {
                           }
                         >
                           {image(asset.id, asset.altText || asset.title)}
+                          {selected === asset.id && (
+                            <span className="player-meme-selection" aria-hidden="true">
+                              <Check size={22} strokeWidth={3} />
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>

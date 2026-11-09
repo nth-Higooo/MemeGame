@@ -15,9 +15,12 @@ const AdminPage = lazy(() =>
 const JudgePage = lazy(() =>
   import("./pages/admin-page").then((module) => ({ default: module.JudgePage })),
 );
+const ReviewPage = lazy(() =>
+  import("./pages/admin-page").then((module) => ({ default: module.ReviewPage })),
+);
 
 function resolveRoute(pathname: string) {
-  const match = pathname.match(/^\/(play|display|admin|judge)\/([^/]+)(?:\/(content))?\/?$/);
+  const match = pathname.match(/^\/(play|display|admin|judge)\/([^/]+)(?:\/(content|review))?\/?$/);
   if (!match) return null;
   const code = sessionCodeSchema.safeParse(match[2]);
   if (!code.success) return null;
@@ -51,6 +54,12 @@ export function App() {
       </Suspense>
     );
   if (route.section === "content") return <ContentAdminPage sessionCode={route.sessionCode} />;
+  if (route.section === "review")
+    return (
+      <Suspense fallback={<p role="status">{getMessages().admin.reviewTitle}</p>}>
+        <ReviewPage sessionCode={route.sessionCode} />
+      </Suspense>
+    );
   return (
     <Suspense fallback={<p role="status">{getMessages().admin.title}</p>}>
       <AdminPage sessionCode={route.sessionCode} />

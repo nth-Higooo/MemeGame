@@ -490,7 +490,7 @@ export class GameSession implements DurableObject {
       this.env.DB.prepare(
         `UPDATE sessions SET status=?,active_round_id=?,state_version=?,state_json=?,
          finished_at=CASE WHEN ?='FINISHED' THEN ? ELSE NULL END,
-         updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?`,
+         updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND status!='ARCHIVED'`,
       ).bind(
         status,
         next.round?.id ?? null,

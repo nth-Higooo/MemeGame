@@ -25,6 +25,8 @@ export const displayVi = {
   emptyResult: "Mỗi khoảnh khắc đều đáng nhớ",
   noWinner: "Vòng này không có meme chiến thắng",
   leaderboard: "Bảng xếp hạng",
+  top: (place: number) => `Top ${place}`,
+  finalRanking: "Thứ hạng chung cuộc",
   next: "Cùng chuẩn bị cho khoảnh khắc tiếp theo",
   finished: "Cảm ơn vì đã quẩy hết mình!",
   champion: "Ngôi sao của bữa tiệc",

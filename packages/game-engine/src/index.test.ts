@@ -81,6 +81,15 @@ function submittingState() {
 }
 
 describe("realtime game engine", () => {
+  it("allows an Admin to end a game early without altering existing scores", () => {
+    const current = submittingState();
+    const ended = adminCommand(current, "END_SESSION", 7_000);
+    expect(ended.phase).toBe("FINISHED");
+    expect(ended.phaseEndsAt).toBeNull();
+    expect(ended.players).toEqual(current.players);
+    expect(() => adminCommand(ended, "END_SESSION", 7_001)).toThrow(/kết thúc/);
+  });
+
   it("limits manual Community tie nominations to tied leaders before a reasoned override", () => {
     const base = submittingState();
     const thirdPlayerId = commandId();

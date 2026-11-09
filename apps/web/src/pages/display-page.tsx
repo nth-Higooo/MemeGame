@@ -42,11 +42,13 @@ function StageImage({
   label,
   error,
   reduced,
+  memeStage = false,
 }: {
   url: string | undefined;
   label: string;
   error?: string | undefined;
   reduced: boolean;
+  memeStage?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState<string | null>(null);
@@ -78,7 +80,10 @@ function StageImage({
     };
   }, [url, reduced]);
   return (
-    <div className="presentation-image" data-testid="stage-media">
+    <div
+      className={`presentation-image ${memeStage ? "is-meme-stage" : ""}`}
+      data-testid="stage-media"
+    >
       {error || (url && failed === url) ? (
         <span role="status">{copy.unavailable}</span>
       ) : !url ? (
@@ -180,36 +185,30 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
   const ranked = [...(snapshot?.players ?? [])].sort(
     (a, b) => b.score - a.score || a.id.localeCompare(b.id),
   );
-  const rankPage =
-    Math.floor(elapsed / 10000) % Math.max(1, Math.ceil(Math.max(0, ranked.length - 3) / 8));
   const progress = snapshot?.players.length
     ? Math.min(100, (100 * snapshot.submissionCount) / snapshot.players.length)
     : 0;
-  const leaderboard = (
-    <ol className="presentation-ranking" aria-label={copy.leaderboard}>
-      {ranked.slice(3 + rankPage * 8, 3 + rankPage * 8 + 8).map((player, position) => (
-        <motion.li
-          layout={!reduced}
-          transition={{ type: "spring", stiffness: 120, damping: 22 }}
-          key={player.id}
-        >
-          <span className="presentation-rank">{rankPage * 8 + position + 4}</span>
-          <strong>{player.displayName}</strong>
-          <span>
-            {player.score} <small>{copy.points}</small>
-          </span>
-        </motion.li>
-      ))}
-    </ol>
-  );
   const podium = ranked.slice(0, 3);
-  const image = (id: string, label: string) => (
+  const topFive = ranked.slice(0, 5);
+  const announcementOrder = [...topFive].reverse();
+  const announcementStep = Math.min(
+    Math.floor(elapsed / 3_000),
+    Math.max(0, announcementOrder.length - 1),
+  );
+  const announced = announcementOrder[announcementStep];
+  const announcedPlace = announced
+    ? ranked.findIndex((player) => player.id === announced.id) + 1
+    : 0;
+  const championReveal = announcedPlace === 1;
+  const showConfetti = championReveal && elapsed >= 3_000 * announcementStep + 1_250;
+  const image = (id: string, label: string, memeStage = false) => (
     <StageImage
       key={`${id}:${reduced}`}
       url={media.urls[id]}
       label={label}
       error={media.errors[id]}
       reduced={reduced}
+      memeStage={memeStage}
     />
   );
   return (
@@ -362,24 +361,14 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                             exit={{ opacity: 0 }}
                             transition={{ duration: reduced ? 0 : 0.4 }}
                           >
-                            {image(active.memeAssetId, copy.entry(index + 1, submissions.length))}
+                            {image(
+                              active.memeAssetId,
+                              copy.entry(index + 1, submissions.length),
+                              true,
+                            )}
                           </motion.figure>
                         </AnimatePresence>
                       </div>
-                      {phase === "VOTING" && (
-                        <div className="presentation-thumbnails" aria-hidden="true">
-                          {submissions
-                            .slice(Math.floor(index / 4) * 4, Math.floor(index / 4) * 4 + 4)
-                            .map((item) => (
-                              <div
-                                key={item.id}
-                                className={item.id === active.id ? "is-active" : ""}
-                              >
-                                {image(item.memeAssetId, copy.anonymous)}
-                              </div>
-                            ))}
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="presentation-empty">{copy.empty}</div>
@@ -398,48 +387,67 @@ export function DisplayPage({ sessionCode }: { sessionCode: string }) {
                         : copy.noWinner}
                     </p>
                   </div>
-                  {winner && image(winner.memeAssetId, copy.result)}
-                  {winner && <StarConfetti />}
+                  {winner && image(winner.memeAssetId, copy.result, true)}
                 </div>
               )}
-              {(phase === "LEADERBOARD" || phase === "FINISHED") && (
+              {phase === "LEADERBOARD" && (
                 <div className="presentation-scores">
                   <span className="presentation-eyebrow">
-                    {phase === "FINISHED"
-                      ? snapshot.name
-                      : copy.round(ownRound, snapshot.totalRounds)}
+                    {copy.round(ownRound, snapshot.totalRounds)}
                   </span>
-                  <h1>{phase === "FINISHED" ? copy.finished : copy.leaderboard}</h1>
-                  {phase === "FINISHED" && ranked[0] && (
-                    <p className="presentation-champion">
-                      ✦ {copy.champion}: <strong>{ranked[0].displayName}</strong> ✦
-                    </p>
-                  )}
-                  {ranked.length ? (
-                    <>
-                      <ol className="presentation-podium" aria-label={copy.leaderboard}>
-                        {[podium[1], podium[0], podium[2]].map((player, index) => {
-                          if (!player) return null;
-                          const place = [2, 1, 3][index]!;
-                          return (
-                            <li className={`podium-place podium-${place}`} key={player.id}>
-                              <strong>{player.displayName}</strong>
-                              <Trophy aria-hidden="true" />
-                              <span>Top {place}</span>
-                              <small>
-                                {player.score} {copy.points}
-                              </small>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                      {ranked.length > 3 && leaderboard}
-                    </>
+                  <h1>{copy.leaderboard}</h1>
+                  {announced ? (
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        className={`ranking-reveal ${championReveal ? "is-champion" : ""}`}
+                        key={announced.id}
+                        initial={reduced ? false : { opacity: 0, scale: 0.88, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 1.06 }}
+                        transition={{ type: "spring", stiffness: 180, damping: 20 }}
+                      >
+                        {championReveal && (
+                          <span className="ranking-spotlight" aria-hidden="true" />
+                        )}
+                        <span className="ranking-place">{copy.top(announcedPlace)}</span>
+                        <Trophy aria-hidden="true" />
+                        <strong>{announced.displayName}</strong>
+                        <small>
+                          {announced.score} {copy.points}
+                        </small>
+                      </motion.div>
+                    </AnimatePresence>
                   ) : (
                     <p>{copy.noPlayers}</p>
                   )}
-                  <p>{phase === "FINISHED" ? copy.footer : copy.next}</p>
-                  {phase === "FINISHED" && <StarConfetti />}
+                  {showConfetti && <StarConfetti />}
+                </div>
+              )}
+              {phase === "FINISHED" && (
+                <div className="presentation-scores finale-scores">
+                  <span className="presentation-eyebrow">{snapshot.name}</span>
+                  <h1>{copy.finished}</h1>
+                  {ranked.length ? (
+                    <ol className="presentation-podium" aria-label={copy.finalRanking}>
+                      {[podium[1], podium[0], podium[2]].map((player, index) => {
+                        if (!player) return null;
+                        const place = [2, 1, 3][index]!;
+                        return (
+                          <li className={`podium-place podium-${place}`} key={player.id}>
+                            <strong>{player.displayName}</strong>
+                            <Trophy aria-hidden="true" />
+                            <span>{copy.top(place)}</span>
+                            <small>
+                              {player.score} {copy.points}
+                            </small>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : (
+                    <p>{copy.noPlayers}</p>
+                  )}
+                  <p>{copy.footer}</p>
                 </div>
               )}
             </>

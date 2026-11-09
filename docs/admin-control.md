@@ -6,7 +6,7 @@ Phase 07 connects `/admin/:sessionCode` and the optional protected `/judge/:sess
 
 1. Apply all migrations with `pnpm db:migrate:local`, then run `pnpm dev` (or `pnpm dev:single-origin`).
 2. Bootstrap the owner in `/admin/MT2026/content` if needed. Remove the production bootstrap secret after setup. Upload original, web-ready assets and author questions, collections, and an individual-mode preset in Content Studio.
-3. Sign in at `/admin/MT2026`. This route can create a new room even if `MT2026` does not exist. Select a preset/question pack, meme category, mode, durations, scoring, and tie-break rule. Each question must retain at least one allowed meme after filtering.
+3. Sign in at `/admin/MT2026`. This route can create a new room even if `MT2026` does not exist. Select a preset/question pack, then use the up/down controls under **Thứ tự câu hỏi** to set the session's order before creation. The selected order is copied into this session only; the source preset is unchanged. Then choose meme category, mode, durations, scoring, and tie-break rule. Each question must retain at least one allowed meme after filtering.
 4. Create the game. Its questions, assets, and settings are copied into the session; later CMS edits do not rewrite the live game. Share the player QR and open the clean `/display/CODE` link on the projector.
 5. Optionally provision a separate Talent name, then open the clean `/judge/CODE` URL. No Talent password is required. Re-provisioning the Talent grant revokes previous Talent sessions.
 
@@ -24,6 +24,15 @@ The session selector lists up to 100 recent sessions. Reloading or reconnecting 
 - Community Mode: Admin opens voting. Each eligible participant can cast one non-self vote; the server rejects duplicates. Closing voting or reaching its deadline aggregates valid votes into a provisional result. Configured deterministic tie-break rules apply, or `TALENT_DECIDES` requests a selection. Zero votes count as a tie; empty rounds have no winner.
 - Review the proposal and confirm publication. Only publication records the final winner and awards preset points. The winner remains on screen for 30 seconds, then the server automatically opens the leaderboard; Admin may still advance manually when needed.
 - Stop round proposes no winner and still requires publication. Existing submissions receive configured participation points when finalized.
+- **Kết thúc game sớm** closes the session immediately without awarding any further points. Admin must approve two distinct confirmation steps before the server accepts it.
+- **Xóa game** archives a room from the Admin/session APIs at any phase; it also requires two UI confirmations and an exact `DELETE` request body. Audit history remains durable for reconciliation, but the room is no longer joinable or shown in the session list.
+
+## Review answers
+
+Open `/admin/:sessionCode/review` from the Admin navigation to inspect every durable
+submission from every round, including the source player, prompt, send time, meme and
+current recorded vote total. This is an Admin-only historical review; it does not change
+the running game or expose author identity to Player/Display clients.
 
 Mode changes are accepted in lobby, question, or leaderboard before submissions open. Unpublished rounds can restart. Published rounds cannot restart, and manual sessions cannot reset destructively; create a new event instead. Correct scores through audited adjustments.
 

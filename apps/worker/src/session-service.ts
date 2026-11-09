@@ -100,6 +100,18 @@ export async function createGameSession(env: Env, input: CreateSessionInput, adm
     presetId: input.presetId,
   });
   if (!state) return null;
+  if (input.questionIds) {
+    const questionIds = new Set(state.questions.map((question) => question.id));
+    if (
+      input.questionIds.length !== state.questions.length ||
+      new Set(input.questionIds).size !== input.questionIds.length ||
+      input.questionIds.some((id) => !questionIds.has(id))
+    )
+      return null;
+    state.questions = input.questionIds.map((id) =>
+      state.questions.find((question) => question.id === id)!,
+    );
+  }
   state.manualControl = input.manualControl;
   if (input.assetIds) {
     for (const question of state.questions)

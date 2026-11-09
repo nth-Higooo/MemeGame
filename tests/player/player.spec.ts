@@ -139,6 +139,7 @@ test("Community player joins, restores, replaces, votes once, and sees final sum
     await expect(page.getByAltText("Original mint")).toBeVisible();
     await page.screenshot({ path: "artifacts/phase05/player-selection.png", fullPage: true });
     await page.getByRole("button", { name: "Chọn meme Original mint", exact: true }).click();
+    await expect(page.locator(".player-meme-selection")).toHaveCount(1);
     await page.getByRole("button", { name: "Gửi meme này", exact: true }).click();
     await expect(page.getByText("Đã gửi meme.", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "Chọn meme Original peach", exact: true }).click();

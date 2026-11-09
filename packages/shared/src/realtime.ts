@@ -27,6 +27,7 @@ export const adminActionSchema = z.enum([
   "RESET_SESSION",
   "STOP_ROUND",
   "RECOVER_SESSION",
+  "END_SESSION",
 ]);
 
 const commandBase = {
@@ -181,6 +182,7 @@ export type ConnectionAttachment = z.infer<typeof connectionAttachmentSchema>;
 export const createSessionSchema = z.object({
   manualControl: z.boolean().default(true),
   assetIds: z.array(entityIdSchema).min(1).max(250).optional(),
+  questionIds: z.array(entityIdSchema).min(1).max(100).optional(),
   settings: z
     .object({
       mode: gameModeSchema,
@@ -326,3 +328,17 @@ export const auditSchema = z.object({
     }),
   ),
 });
+export const sessionReviewSchema = z.object({
+  items: z.array(
+    z.object({
+      submissionId: entityIdSchema,
+      roundNumber: z.number().int().positive(),
+      prompt: z.string(),
+      memeAssetId: entityIdSchema,
+      playerName: z.string(),
+      submittedAt: z.string(),
+      voteCount: z.number().int().nonnegative(),
+    }),
+  ),
+});
+export const deleteSessionSchema = z.object({ confirmation: z.literal("DELETE") });

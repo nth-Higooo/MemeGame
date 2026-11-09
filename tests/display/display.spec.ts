@@ -204,10 +204,14 @@ test("live presentation stays read-only, hides early media, restores and celebra
     await expect(
       page.getByRole("heading", { name: "Ngôi sao meme thắng vòng này!" }),
     ).toBeVisible();
-    await expect(page.locator(".presentation-confetti i")).toHaveCount(28);
-    await expect(page.locator(".presentation-confetti i").first()).toHaveText("★");
+    await expect(page.locator(".presentation-confetti i")).toHaveCount(0);
     await room.admin.action("ADVANCE");
     await expect(page.getByRole("heading", { name: "Bảng xếp hạng" })).toBeVisible();
+    await expect(page.getByText("Top 2", { exact: true })).toBeVisible();
+    await expect(page.locator(".ranking-spotlight")).toHaveCount(0);
+    await expect(page.locator(".ranking-spotlight")).toBeVisible({ timeout: 4500 });
+    await expect(page.locator(".presentation-confetti i")).toHaveCount(28);
+    await expect(page.locator(".presentation-confetti i").first()).toHaveText("★");
     await room.admin.action("ADVANCE");
     await expect(page.getByRole("heading", { name: "Cảm ơn vì đã quẩy hết mình!" })).toBeVisible();
     await page.screenshot({ path: `artifacts/phase06/${testInfo.project.name}-final.png` });

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import {
   z,
@@ -8,6 +8,7 @@ import {
   questionSchema,
   memeAssetSchema,
   persistedGameStateSchema,
+  sessionReviewSchema,
   displayConnectionSchema,
   type PublicSessionState,
   type GameCommand,
@@ -32,9 +33,10 @@ import { OperatorMedia } from "../components/operator-media";
 
 const c = getMessages().admin;
 type Confirmation = {
-  kind: "publish" | "override" | "score" | "stop";
+  kind: "publish" | "override" | "score" | "stop" | "end" | "delete";
   id?: string;
   version: number;
+  step?: 1 | 2;
 };
 function JudgeImage({ id, code, token }: { id: string; code: string; token: string }) {
   const [url, setUrl] = useState("");
@@ -87,6 +89,99 @@ export function JudgePage({ sessionCode }: { sessionCode: string }) {
   return <ControlPage sessionCode={sessionCode} judge />;
 }
 
+export function ReviewPage({ sessionCode }: { sessionCode: string }) {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [items, setItems] = useState<ReturnType<typeof sessionReviewSchema.parse>["items"]>([]);
+  const [error, setError] = useState("");
+  const loadReview = useCallback(() => {
+    void adminRequest(`/api/admin/sessions/${sessionCode}/review`)
+      .then((data) => {
+        setItems(sessionReviewSchema.parse(data).items);
+        setError("");
+      })
+      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : c.offline));
+  }, [sessionCode]);
+  useEffect(() => {
+    let active = true;
+    void adminRequest("/api/admin/auth/me")
+      .then(() => {
+        if (active) {
+          setAuthenticated(true);
+          loadReview();
+        }
+      })
+      .catch(() => {
+        if (active) setAuthenticated(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadReview]);
+  if (!authenticated)
+    return (
+      <AdminLogin
+        title={c.reviewTitle}
+        onAuthenticated={() => {
+          setAuthenticated(true);
+          loadReview();
+        }}
+      />
+    );
+  return (
+    <main className="theme-dark min-h-screen">
+      <CelestialBackground tone="stage" />
+      <div className="relative mx-auto max-w-6xl p-4 lg:p-7">
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold tracking-widest">{c.studio}</p>
+            <h1 className="text-2xl font-black">{c.reviewTitle}</h1>
+          </div>
+          <div className="flex gap-2">
+            <GlassButton variant="glass" onClick={loadReview}>
+              {c.reconnect}
+            </GlassButton>
+            <GlassButton asChild variant="glass">
+              <a href={`/admin/${sessionCode}`}>{c.backToControl}</a>
+            </GlassButton>
+          </div>
+        </header>
+        {error && (
+          <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-3 text-red-800">
+            {error}
+          </p>
+        )}
+        {!items.length ? (
+          <GlassCard className="p-6">
+            <p>{c.reviewEmpty}</p>
+          </GlassCard>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => (
+              <GlassCard className="overflow-hidden p-3" key={item.submissionId}>
+                <OperatorMedia
+                  src={`/api/admin/assets/${item.memeAssetId}/content`}
+                  alt={`${c.roundLabel(item.roundNumber)} · ${item.playerName}`}
+                />
+                <p className="mt-3 text-xs font-bold text-[var(--ink-muted)]">
+                  {c.roundLabel(item.roundNumber)} · {item.voteCount} {c.voteCount(item.voteCount)}
+                </p>
+                <h2 className="mt-1 font-black">{item.playerName}</h2>
+                <p className="mt-1 text-sm">{item.prompt}</p>
+                <time
+                  className="mt-2 block text-xs text-[var(--ink-muted)]"
+                  dateTime={item.submittedAt}
+                >
+                  {new Date(item.submittedAt).toLocaleString("vi-VN")}
+                </time>
+              </GlassCard>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
 function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judge?: boolean }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [judgeAttempt, setJudgeAttempt] = useState(0);
@@ -99,6 +194,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
   const [questions, setQuestions] = useState<Question[]>([]);
   const [assets, setAssets] = useState<MemeAsset[]>([]);
   const [presetId, setPresetId] = useState("");
+  const [questionOrder, setQuestionOrder] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [qr, setQr] = useState("");
   const [judgeQr, setJudgeQr] = useState("");
@@ -110,7 +206,8 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
   const state: PublicSessionState | null = dry
     ? projectPublicState(dry, "ADMIN", null, new Set(dry.players.map((p) => p.id)), clock)
     : game.snapshot;
-  const load = async () => {
+  const selectedPreset = presets.find((item) => item.id === presetId);
+  const load = useCallback(async () => {
     try {
       const [s, p, q, a] = await Promise.all([
         adminRequest("/api/admin/sessions"),
@@ -124,13 +221,16 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
         .parse(p)
         .items.filter((item) => item.playMode === "INDIVIDUAL");
       setPresets(parsed);
-      setPresetId((id) => id || parsed[0]?.id || "");
+      if (!presetId && parsed[0]) {
+        setPresetId(parsed[0].id);
+        setQuestionOrder(parsed[0].questionIds);
+      }
       setQuestions(z.object({ items: z.array(questionSchema) }).parse(q).items);
       setAssets(z.object({ items: z.array(memeAssetSchema) }).parse(a).items);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : c.offline);
     }
-  };
+  }, [presetId]);
   useEffect(() => {
     if (judge) return;
     let active = true;
@@ -147,7 +247,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
     return () => {
       active = false;
     };
-  }, [judge]);
+  }, [judge, load]);
   useEffect(() => {
     if (!judge) return;
     let active = true;
@@ -211,36 +311,35 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
       setError(caught instanceof Error ? caught.message : c.offline);
     }
   };
-  const send = (command: GameCommand) => {
-    setError("");
-    if (dry) {
-      try {
-        setDry(
-          applyGameCommand(dry, command, { role: "ADMIN", subjectId: null }, Date.now()).state,
-        );
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : c.offline);
+  const send = useCallback(
+    (command: GameCommand) => {
+      setError("");
+      if (dry) {
+        try {
+          setDry(
+            applyGameCommand(dry, command, { role: "ADMIN", subjectId: null }, Date.now()).state,
+          );
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : c.offline);
+        }
+        return;
       }
-      return;
-    }
-    game.send(command);
-  };
-  const action = (value: Extract<GameCommand, { type: "ADMIN_ACTION" }>["action"]) => {
-    if (state)
-      send({
-        type: "ADMIN_ACTION",
-        commandId: crypto.randomUUID(),
-        expectedVersion: state.version,
-        action: value,
-      });
-  };
-  const archiveCompletedSession = () => {
-    if (!window.confirm(c.archiveSessionConfirm)) return;
-    void run(
-      () => adminRequest(`/api/admin/sessions/${sessionCode}`, undefined, "DELETE"),
-      c.archivedSession,
-    ).then(() => location.assign("/admin/MT2026"));
-  };
+      game.send(command);
+    },
+    [dry, game],
+  );
+  const action = useCallback(
+    (value: Extract<GameCommand, { type: "ADMIN_ACTION" }>["action"]) => {
+      if (state)
+        send({
+          type: "ADMIN_ACTION",
+          commandId: crypto.randomUUID(),
+          expectedVersion: state.version,
+          action: value,
+        });
+    },
+    [send, state],
+  );
   useEffect(() => {
     if (judge || dry || !state || state.paused || confirmation || game.pending) return;
     const advanceable = [
@@ -269,8 +368,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [judge, dry, state, confirmation, game.pending]); // action is recreated from the current authoritative state.
-  const selectedPreset = presets.find((item) => item.id === presetId);
+  }, [judge, dry, state, confirmation, game.pending, action]);
   const allowedAssets = assets
     .filter((asset) => asset.status !== "ARCHIVED" && (!category || asset.category === category))
     .map((asset) => asset.id);
@@ -282,6 +380,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
         await adminRequest("/api/admin/sessions", {
           name: data.get("name"),
           presetId,
+          questionIds: questionOrder,
           manualControl: true,
           assetIds: allowedAssets,
           settings: {
@@ -363,10 +462,27 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
   const confirm = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!confirmation || !state) return;
+    if (
+      (confirmation.kind === "end" || confirmation.kind === "delete") &&
+      confirmation.step === 1
+    ) {
+      setConfirmation({ ...confirmation, step: 2 });
+      return;
+    }
+    if (confirmation.kind === "delete") {
+      setConfirmation(null);
+      void run(
+        () =>
+          adminRequest(`/api/admin/sessions/${sessionCode}`, { confirmation: "DELETE" }, "DELETE"),
+        c.deletedSession,
+      ).then(() => location.assign("/admin/MT2026"));
+      return;
+    }
     const data = new FormData(event.currentTarget);
     const base = { commandId: crypto.randomUUID(), expectedVersion: confirmation.version };
     if (confirmation.kind === "publish") send({ ...base, type: "PUBLISH_RESULT", confirmed: true });
     if (confirmation.kind === "stop") send({ ...base, type: "ADMIN_ACTION", action: "STOP_ROUND" });
+    if (confirmation.kind === "end") send({ ...base, type: "ADMIN_ACTION", action: "END_SESSION" });
     if (confirmation.kind === "override")
       send({
         ...base,
@@ -511,6 +627,9 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
               <a href={`/admin/${sessionCode}/content`}>{c.content}</a>
             </GlassButton>
             <GlassButton asChild variant="glass">
+              <a href={`/admin/${sessionCode}/review`}>{c.reviewAnswers}</a>
+            </GlassButton>
+            <GlassButton asChild variant="glass">
               <a target="_blank" rel="noreferrer" href={`/display/${sessionCode}`}>
                 {c.display}
               </a>
@@ -541,7 +660,13 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                       value={presetId}
                       aria-label={c.pack}
                       disabled={!presets.length}
-                      onChange={(event) => setPresetId(event.target.value)}
+                      onChange={(event) => {
+                        const nextPreset = presets.find(
+                          (preset) => preset.id === event.target.value,
+                        );
+                        setPresetId(event.target.value);
+                        setQuestionOrder(nextPreset?.questionIds ?? []);
+                      }}
                     >
                       {presets.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -550,6 +675,54 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                       ))}
                     </select>
                   </label>
+                  {questionOrder.length > 0 && (
+                    <fieldset>
+                      <legend className="mb-2 text-sm font-bold">{c.questionOrder}</legend>
+                      <ol className="space-y-2">
+                        {questionOrder.map((questionId, index) => {
+                          const question = questions.find((item) => item.id === questionId);
+                          if (!question) return null;
+                          const move = (offset: -1 | 1) =>
+                            setQuestionOrder((current) => {
+                              const target = index + offset;
+                              if (target < 0 || target >= current.length) return current;
+                              const next = [...current];
+                              [next[index], next[target]] = [next[target]!, next[index]!];
+                              return next;
+                            });
+                          return (
+                            <li
+                              className="flex items-center gap-2 rounded-xl bg-[var(--surface-soft)] p-2 text-sm"
+                              key={question.id}
+                            >
+                              <span className="font-black">{index + 1}.</span>
+                              <span className="min-w-0 flex-1 truncate">{question.text}</span>
+                              <GlassButton
+                                aria-label={`${c.moveUp}: ${question.text}`}
+                                disabled={index === 0}
+                                onClick={() => move(-1)}
+                                size="small"
+                                type="button"
+                                variant="ghost"
+                              >
+                                ↑
+                              </GlassButton>
+                              <GlassButton
+                                aria-label={`${c.moveDown}: ${question.text}`}
+                                disabled={index === questionOrder.length - 1}
+                                onClick={() => move(1)}
+                                size="small"
+                                type="button"
+                                variant="ghost"
+                              >
+                                ↓
+                              </GlassButton>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </fieldset>
+                  )}
                   <label className="block text-sm font-bold">
                     {c.library}
                     <select
@@ -675,6 +848,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     <div className="mt-5 space-y-3">
                       {nextAction && (
                         <GlassButton
+                          aria-label={nextLabel}
                           className="w-full"
                           disabled={disabled || Boolean(state.paused)}
                           onClick={() => action(nextAction)}
@@ -798,13 +972,27 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                     </div>
                   )}
                   {state.phase === "FINISHED" && <p className="mt-4 font-bold">{c.finish}</p>}
-                  {state.phase === "FINISHED" && !judge && !dry && (
+                  {!judge && !dry && state.phase !== "FINISHED" && (
+                    <GlassButton
+                      className="mt-3"
+                      disabled={disabled}
+                      variant="danger"
+                      onClick={() =>
+                        setConfirmation({ kind: "end", version: state.version, step: 1 })
+                      }
+                    >
+                      {c.endSession}
+                    </GlassButton>
+                  )}
+                  {!judge && !dry && (
                     <GlassButton
                       className="mt-3"
                       variant="danger"
-                      onClick={archiveCompletedSession}
+                      onClick={() =>
+                        setConfirmation({ kind: "delete", version: state.version, step: 1 })
+                      }
                     >
-                      {c.archiveSession}
+                      {c.deleteSession}
                     </GlassButton>
                   )}
                   {!judge && (
@@ -989,7 +1177,11 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                 ? c.override
                 : confirmation?.kind === "score"
                   ? c.adjust
-                  : c.stop
+                  : confirmation?.kind === "end"
+                    ? c.endSession
+                    : confirmation?.kind === "delete"
+                      ? c.deleteSession
+                      : c.stop
           }
           description={
             confirmation?.kind === "publish"
@@ -998,7 +1190,15 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
                 ? c.warningOverride
                 : confirmation?.kind === "score"
                   ? c.warningScore
-                  : c.warningStop
+                  : confirmation?.kind === "end"
+                    ? confirmation.step === 1
+                      ? c.endSessionFirst
+                      : c.endSessionFinal
+                    : confirmation?.kind === "delete"
+                      ? confirmation.step === 1
+                        ? c.deleteSessionFirst
+                        : c.deleteSessionFinal
+                      : c.warningStop
           }
           onClose={() => setConfirmation(null)}
         >
@@ -1036,7 +1236,7 @@ function ControlPage({ sessionCode, judge = false }: { sessionCode: string; judg
               type="submit"
               disabled={disabled || confirmation?.version !== state?.version}
             >
-              {c.confirm}
+              {confirmation?.step === 1 ? c.continueConfirm : c.confirm}
             </GlassButton>
           </form>
         </GlassModal>
